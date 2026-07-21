@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "A E",
+    "QHR",
+    " L "
+  ],
+  "key": {
+    "A": "minecraft:amethyst_shard",
+    "E": "minecraft:emerald",
+    "Q": "minecraft:quartz",
+    "H": "minecraft:heart_of_the_sea",
+    "R": "minecraft:redstone",
+    "L": "minecraft:lapis_lazuli"
+  },
+  "result": {
+    "id": "tailored-traits:craftium",
+    "count": 1
+  }
+}

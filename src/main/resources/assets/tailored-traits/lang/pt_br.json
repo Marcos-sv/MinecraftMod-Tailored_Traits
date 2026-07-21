@@ -1,0 +1,55 @@
+{
+  "item.tailored-traits.mineum": "Mineum",
+  "item.tailored-traits.craftium": "Craftium",
+  "item.tailored-traits.stevium": "Stevium",
+
+  "trim_material.tailored-traits.stevium": "Stevium",
+
+  "key.category.tailored-traits.general": "Tailored Traits",
+  "key.tailored-traits.open_stevium_menu": "Abrir Matriz Stevium",
+
+  "screen.tailored-traits.stevium_matrix": "Matriz Stevium",
+  "screen.tailored-traits.helmet": "Capacete",
+  "screen.tailored-traits.chestplate": "Peitoral",
+  "screen.tailored-traits.leggings": "Calça",
+  "screen.tailored-traits.boots": "Botas",
+
+  "screen.tailored-traits.none_selected": "Nenhum",
+  "screen.tailored-traits.selected": "Peça selecionada: %s",
+  "screen.tailored-traits.click_piece": "Clique em uma peça liberada para mostrar os materiais",
+  "screen.tailored-traits.choose_material": "Escolha o material que esta peça imitará",
+  "screen.tailored-traits.selected_material": "Material selecionado: %s",
+  "screen.tailored-traits.confirm": "Confirmar escolha",
+  "screen.tailored-traits.individual_cost": "Custo da alteração: 2 níveis de experiência",
+
+  "screen.tailored-traits.full_power_locked": "Poder completo: bloqueado",
+  "screen.tailored-traits.full_power_unlocked": "Poder completo: liberado",
+  "screen.tailored-traits.equip_hint": "Equipe peças com enfeite de Stevium para liberar os espaços",
+
+  "power_material.tailored-traits.iron": "Ferro",
+  "power_material.tailored-traits.diamond": "Diamante",
+  "power_material.tailored-traits.gold": "Ouro",
+  "power_material.tailored-traits.copper": "Cobre",
+  "power_material.tailored-traits.redstone": "Redstone",
+  "power_material.tailored-traits.lapis_lazuli": "Lápis-lazúli",
+  "power_material.tailored-traits.quartz": "Quartzo",
+  "power_material.tailored-traits.emerald": "Esmeralda",
+  "power_material.tailored-traits.resin": "Resina",
+  "power_material.tailored-traits.amethyst": "Ametista",
+  "power_material.tailored-traits.netherite": "Netherite",
+  "power_material.tailored-traits.stevium": "Stevium",
+
+  "message.tailored-traits.invalid_selection": "A seleção enviada é inválida.",
+  "message.tailored-traits.piece_not_equipped": "A peça não possui um enfeite de Stevium.",
+  "message.tailored-traits.not_enough_levels": "Você precisa de pelo menos 2 níveis de experiência.",
+  "message.tailored-traits.already_selected": "Esse material já está selecionado nessa peça.",
+  "message.tailored-traits.power_saved": "%s foi aplicado ao poder do seu %s.",
+
+  "message.tailored-traits.current_day_period": "Período atual: %s",
+
+  "day_period.tailored-traits.dawn": "Amanhecer",
+  "day_period.tailored-traits.morning": "Manhã",
+  "day_period.tailored-traits.afternoon": "Tarde",
+  "day_period.tailored-traits.sunset": "Entardecer",
+  "day_period.tailored-traits.night": "Noite"
+}

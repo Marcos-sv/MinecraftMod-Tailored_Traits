@@ -1,0 +1,55 @@
+{
+  "item.tailored-traits.mineum": "Mineum",
+  "item.tailored-traits.craftium": "Craftium",
+  "item.tailored-traits.stevium": "Stevium",
+
+  "trim_material.tailored-traits.stevium": "Stevium",
+
+  "key.category.tailored-traits.general": "Tailored Traits",
+  "key.tailored-traits.open_stevium_menu": "Open Stevium Matrix",
+
+  "screen.tailored-traits.stevium_matrix": "Stevium Matrix",
+  "screen.tailored-traits.helmet": "Helmet",
+  "screen.tailored-traits.chestplate": "Chestplate",
+  "screen.tailored-traits.leggings": "Leggings",
+  "screen.tailored-traits.boots": "Boots",
+
+  "screen.tailored-traits.none_selected": "None",
+  "screen.tailored-traits.selected": "Selected piece: %s",
+  "screen.tailored-traits.click_piece": "Click an unlocked piece to display the materials",
+  "screen.tailored-traits.choose_material": "Choose the material this piece will imitate",
+  "screen.tailored-traits.selected_material": "Selected material: %s",
+
+  "screen.tailored-traits.full_power_locked": "Full power: locked",
+  "screen.tailored-traits.full_power_unlocked": "Full power: unlocked",
+  "screen.tailored-traits.equip_hint": "Equip Stevium-trimmed pieces to unlock the slots",
+
+  "power_material.tailored-traits.iron": "Iron",
+  "power_material.tailored-traits.diamond": "Diamond",
+  "power_material.tailored-traits.gold": "Gold",
+  "power_material.tailored-traits.copper": "Copper",
+  "power_material.tailored-traits.redstone": "Redstone",
+  "power_material.tailored-traits.lapis_lazuli": "Lapis Lazuli",
+  "power_material.tailored-traits.quartz": "Quartz",
+  "power_material.tailored-traits.emerald": "Emerald",
+  "power_material.tailored-traits.resin": "Resin",
+  "power_material.tailored-traits.amethyst": "Amethyst",
+  "power_material.tailored-traits.netherite": "Netherite",
+  "power_material.tailored-traits.stevium": "Stevium",
+  "screen.tailored-traits.confirm": "Confirm selection",
+  "screen.tailored-traits.individual_cost": "Change cost: 2 experience levels",
+
+  "message.tailored-traits.invalid_selection": "The submitted selection is invalid.",
+  "message.tailored-traits.piece_not_equipped": "The armor piece does not have a Stevium trim.",
+  "message.tailored-traits.not_enough_levels": "You need at least 2 experience levels.",
+  "message.tailored-traits.already_selected": "This material is already selected for this piece.",
+  "message.tailored-traits.power_saved": "%s was applied to your %s power.",
+
+  "message.tailored-traits.current_day_period": "Current period: %s",
+
+  "day_period.tailored-traits.dawn": "Dawn",
+  "day_period.tailored-traits.morning": "Morning",
+  "day_period.tailored-traits.afternoon": "Afternoon",
+  "day_period.tailored-traits.sunset": "Sunset",
+  "day_period.tailored-traits.night": "Night"
+}

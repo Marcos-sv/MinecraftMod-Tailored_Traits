@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MRC"
+  ],
+  "key": {
+    "M": "tailored-traits:mineum",
+    "R": "minecraft:resin_brick",
+    "C": "tailored-traits:craftium"
+  },
+  "result": {
+    "id": "tailored-traits:stevium",
+    "count": 1
+  }
+}

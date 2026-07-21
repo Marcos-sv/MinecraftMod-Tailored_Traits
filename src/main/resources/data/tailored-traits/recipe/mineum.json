@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "N I",
+    "DHC",
+    " G "
+  ],
+  "key": {
+    "N": "minecraft:netherite_ingot",
+    "I": "minecraft:iron_ingot",
+    "D": "minecraft:diamond",
+    "H": "minecraft:heart_of_the_sea",
+    "C": "minecraft:copper_ingot",
+    "G": "minecraft:gold_ingot"
+  },
+  "result": {
+    "id": "tailored-traits:mineum",
+    "count": 1
+  }
+}
