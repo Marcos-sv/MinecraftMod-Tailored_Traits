@@ -1,38 +1,36 @@
 {
-	"schemaVersion": 1,
-	"id": "tailored-traits",
-	"version": "${version}",
-	"name": "Tailored Traits",
-	"description": "This is an example description! Tell everyone what your mod is about!",
-	"authors": [
-		"Me!"
-	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
-	"license": "CC0-1.0",
-	"icon": "assets/tailored-traits/icon.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": [
-			"com.marcos.tailoredtraits.TailoredTraits"
-		],
-		"client": [
-			"com.marcos.tailoredtraits.client.TailoredTraitsClient"
-		]
-	},
-	"mixins": [
-		"tailored-traits.mixins.json",
-		{
-			"config": "tailored-traits.client.mixins.json",
-			"environment": "client"
-		}
-	],
-	"depends": {
-		"fabricloader": ">=0.19.3",
-		"minecraft": "~26.2",
-		"java": ">=25",
-		"fabric-api": "*"
-	}
+    "schemaVersion": 1,
+    "id": "tailored-traits",
+    "version": "${version}",
+    "name": "Tailored Traits",
+    "description": "Armaduras personalizáveis com poderes baseados em materiais e acabamentos.",
+    "authors": [
+        "Marcos"
+    ],
+    "license": "CC0-1.0",
+    "icon": "assets/tailored-traits/icon.png",
+    "environment": "*",
+    "entrypoints": {
+        "main": [
+            "com.marcos.tailoredtraits.TailoredTraits",
+            "com.marcos.tailoredtraits.power.DamagePowerInitializer",
+            "com.marcos.tailoredtraits.power.MovementPowerInitializer"
+        ],
+        "client": [
+            "com.marcos.tailoredtraits.client.TailoredTraitsClient"
+        ]
+    },
+    "mixins": [
+        "tailored-traits.mixins.json",
+        {
+            "config": "tailored-traits.client.mixins.json",
+            "environment": "client"
+        }
+    ],
+    "depends": {
+        "fabricloader": ">=0.19.3",
+        "minecraft": "~26.2",
+        "java": ">=25",
+        "fabric-api": "*"
+    }
 }

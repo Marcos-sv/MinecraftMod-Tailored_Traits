@@ -1,6 +1,8 @@
 package com.marcos.tailoredtraits.power;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -9,6 +11,7 @@ import com.marcos.tailoredtraits.component.ModComponents;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,16 +23,26 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.monster.EnderMan;
+import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.npc.villager.AbstractVillager;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.food.FoodData;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
 
 public final class PassivePowerHandler {
 
-    /*
-     * 240 ticks = 12 segundos.
-     */
     private static final int NIGHT_VISION_DURATION =
         240;
+
+    private static final double
+        DIAMOND_ENDERMAN_VISION_RANGE =
+            12.0D;
+
+    private static final double
+        DIAMOND_ENDERMAN_CHECK_RADIUS =
+            32.0D;
 
     /*
      * Botas de Cobre:
@@ -46,12 +59,43 @@ public final class PassivePowerHandler {
             new AttributeModifier(
                 COPPER_BOOTS_SPEED_ID,
                 0.10D,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
+                AttributeModifier.Operation
+                    .ADD_MULTIPLIED_TOTAL
             );
 
     /*
-     * Botas de Quartzo:
-     * salto de aproximadamente 2,5 blocos.
+     * Botas de Ouro:
+     * velocidade-base do Piglin.
+     */
+    private static final Identifier
+        GOLD_BOOTS_SPEED_ID =
+            TailoredTraits.id(
+                "gold_boots_piglin_speed"
+            );
+
+    private static final double
+        PIGLIN_MOVEMENT_SPEED =
+            Piglin.createAttributes()
+                .build()
+                .getBaseValue(
+                    Attributes.MOVEMENT_SPEED
+                );
+
+    /*
+     * Botas de Diamante:
+     * 5 segundos carregando e 3 segundos
+     * de Levitação.
+     */
+    private static final int
+        DIAMOND_LEVITATION_CHARGE_DURATION =
+            100;
+
+    private static final int
+        DIAMOND_LEVITATION_EFFECT_DURATION =
+            60;
+
+    /*
+     * Botas de Quartzo.
      */
     private static final Identifier
         QUARTZ_BOOTS_JUMP_ID =
@@ -68,8 +112,29 @@ public final class PassivePowerHandler {
             );
 
     /*
+     * Botas de Redstone:
+     *
+     * MOVEMENT_EFFICIENCY varia de 0 até 1.
+     * O valor 1 remove a penalidade de velocidade
+     * aplicada pelo bloco sob o jogador.
+     */
+    private static final Identifier
+        REDSTONE_BOOTS_MOVEMENT_EFFICIENCY_ID =
+            TailoredTraits.id(
+                "redstone_boots_movement_efficiency"
+            );
+
+    private static final AttributeModifier
+        REDSTONE_BOOTS_MOVEMENT_EFFICIENCY_MODIFIER =
+            new AttributeModifier(
+                REDSTONE_BOOTS_MOVEMENT_EFFICIENCY_ID,
+                1.0D,
+                AttributeModifier.Operation.ADD_VALUE
+            );
+
+    /*
      * Calça de Quartzo:
-     * +20% de dano corpo a corpo.
+     * +20% de dano.
      */
     private static final Identifier
         QUARTZ_LEGGINGS_DAMAGE_ID =
@@ -82,12 +147,67 @@ public final class PassivePowerHandler {
             new AttributeModifier(
                 QUARTZ_LEGGINGS_DAMAGE_ID,
                 0.20D,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
+                AttributeModifier.Operation
+                    .ADD_MULTIPLIED_TOTAL
             );
 
     /*
-     * Peitoral de Quartzo:
-     * +1 bloco de alcance contra entidades.
+     * Calça de Ferro:
+     * -10% de dano de queda.
+     */
+    private static final Identifier
+        IRON_LEGGINGS_FALL_DAMAGE_ID =
+            TailoredTraits.id(
+                "iron_leggings_fall_damage"
+            );
+
+    private static final AttributeModifier
+        IRON_LEGGINGS_FALL_DAMAGE_MODIFIER =
+            new AttributeModifier(
+                IRON_LEGGINGS_FALL_DAMAGE_ID,
+                -0.10D,
+                AttributeModifier.Operation
+                    .ADD_MULTIPLIED_TOTAL
+            );
+
+    /*
+     * Calça de Ametista:
+     * ecolocalização.
+     */
+    private static final double
+        AMETHYST_ECHOLOCATION_RADIUS =
+            16.0D;
+
+    private static final int
+        AMETHYST_ECHOLOCATION_GLOW_DURATION =
+            30;
+
+    /*
+     * Calça de Redstone:
+     * recuperação de fome sobre bloco de redstone.
+     */
+    private static final int
+        REDSTONE_HUNGER_INTERVAL =
+            40;
+
+    private static final int
+        REDSTONE_HUNGER_AMOUNT =
+            1;
+
+    private static final float
+        REDSTONE_HUNGER_SATURATION =
+            0.25F;
+
+    /*
+     * Calça de Lápis-lazúli:
+     * concede 25% de experiência adicional.
+     */
+    private static final double
+        LAPIS_EXPERIENCE_BONUS_PERCENTAGE =
+            0.25D;
+
+    /*
+     * Peitoral de Quartzo.
      */
     private static final Identifier
         QUARTZ_CHESTPLATE_REACH_ID =
@@ -104,8 +224,7 @@ public final class PassivePowerHandler {
             );
 
     /*
-     * Peitoral de Ametista:
-     * aumenta o knockback dos ataques corpo a corpo.
+     * Peitoral de Ametista.
      */
     private static final Identifier
         AMETHYST_CHESTPLATE_KNOCKBACK_ID =
@@ -122,80 +241,101 @@ public final class PassivePowerHandler {
             );
 
     /*
-     * Calça de Ferro:
-     * reduz o dano de queda em 10%.
+     * Peitoral de Esmeralda.
      */
-    private static final Identifier
-        IRON_LEGGINGS_FALL_DAMAGE_ID =
-            TailoredTraits.id(
-                "iron_leggings_fall_damage"
-            );
+    private static final double
+        EMERALD_VILLAGER_ATTRACTION_RADIUS =
+            20.0D;
 
-    private static final AttributeModifier
-        IRON_LEGGINGS_FALL_DAMAGE_MODIFIER =
-            new AttributeModifier(
-                IRON_LEGGINGS_FALL_DAMAGE_ID,
-                -0.10D,
-                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
-            );
+    private static final double
+        EMERALD_VILLAGER_STOP_DISTANCE =
+            2.5D;
+
+    private static final double
+        EMERALD_VILLAGER_MOVEMENT_SPEED =
+            0.8D;
 
     /*
-     * Capacete de Esmeralda:
-     * raio de identificação dos aldeões.
+     * Peitoral de Lápis-lazúli:
+     * 10 pontos de vida = 5 corações.
+     */
+    private static final float
+        LAPIS_LEVEL_UP_HEAL_AMOUNT =
+            10.0F;
+
+    /*
+     * Capacete de Esmeralda.
      */
     private static final double
         EMERALD_VILLAGER_MARK_RADIUS =
             24.0D;
 
-    /*
-     * 60 ticks = 3 segundos.
-     */
     private static final int
         EMERALD_VILLAGER_GLOW_DURATION =
             60;
 
     /*
-     * Capacete de Ouro:
-     * raio de identificação das criaturas do Nether.
+     * Capacete de Ouro.
      */
     private static final double
         GOLD_NETHER_MOB_MARK_RADIUS =
             24.0D;
 
-    /*
-     * O brilho permanece durante 3 segundos.
-     */
     private static final int
         GOLD_NETHER_MOB_GLOW_DURATION =
             60;
 
     /*
-     * Peitoral de Netherite:
-     * 100 ticks = 5 segundos de resistência ao fogo.
+     * Peitoral de Netherite.
      */
     private static final int
         NETHERITE_FIRE_RESISTANCE_DURATION =
             100;
 
-    /*
-     * Guarda os jogadores cuja visão noturna
-     * foi aplicada pelo Tailored Traits.
-     */
     private static final Set<UUID>
         AMETHYST_VISION_PLAYERS =
             new HashSet<>();
 
-    /*
-     * Guarda os jogadores que já ativaram o poder
-     * do peitoral de Netherite durante a exposição
-     * atual ao fogo ou à lava.
-     *
-     * O jogador só será removido desta lista quando
-     * não estiver mais pegando fogo.
-     */
     private static final Set<UUID>
         NETHERITE_FIRE_POWER_LOCKED =
             new HashSet<>();
+
+    private static final Map<UUID, Integer>
+        DIAMOND_LEVITATION_CHARGE_TICKS =
+            new HashMap<>();
+
+    private static final Set<UUID>
+        DIAMOND_LEVITATION_LOCKED =
+            new HashSet<>();
+
+    /*
+     * Usado pelo peitoral de Lápis-lazúli.
+     */
+    private static final Map<UUID, Integer>
+        LAST_EXPERIENCE_LEVELS =
+            new HashMap<>();
+
+    /*
+     * Usado pela calça de Lápis-lazúli.
+     *
+     * Guarda a quantidade total de XP que o jogador
+     * possuía na última verificação.
+     */
+    private static final Map<UUID, Integer>
+        LAST_TOTAL_EXPERIENCE =
+            new HashMap<>();
+
+    /*
+     * Guarda frações do bônus de XP.
+     *
+     * Exemplo:
+     * ganhar 1 XP gera 0,25 de bônus.
+     * Após quatro ganhos de 1 XP, o jogador recebe
+     * 1 ponto adicional.
+     */
+    private static final Map<UUID, Double>
+        LAPIS_EXPERIENCE_BONUS_REMAINDERS =
+            new HashMap<>();
 
     private PassivePowerHandler() {
     }
@@ -210,31 +350,41 @@ public final class PassivePowerHandler {
                     server.getPlayerList().getPlayers()
                 ) {
                     /*
-                     * Poderes dos capacetes.
+                     * Capacetes.
                      */
                     updateAmethystHelmetPower(player);
                     updateCopperHelmetPower(player);
+                    updateDiamondHelmetPower(player);
                     updateEmeraldHelmetPower(player);
                     updateGoldHelmetPower(player);
+                    updateRedstoneHelmetPower(player);
 
                     /*
-                     * Poderes dos peitorais.
+                     * Peitorais.
                      */
                     updateQuartzChestplatePower(player);
                     updateAmethystChestplatePower(player);
+                    updateEmeraldChestplatePower(player);
                     updateNetheriteChestplatePower(player);
+                    updateLapisChestplatePower(player);
 
                     /*
-                     * Poderes das calças.
+                     * Calças.
                      */
                     updateQuartzLeggingsPower(player);
                     updateIronLeggingsPower(player);
+                    updateAmethystLeggingsPower(player);
+                    updateRedstoneLeggingsPower(player);
+                    updateLapisLeggingsPower(player);
 
                     /*
-                     * Poderes das botas.
+                     * Botas.
                      */
                     updateCopperBootsPower(player);
+                    updateGoldBootsPower(player);
+                    updateDiamondBootsLevitationPower(player);
                     updateQuartzBootsPower(player);
+                    updateRedstoneBootsPower(player);
                 }
             }
         );
@@ -244,10 +394,6 @@ public final class PassivePowerHandler {
         );
     }
 
-    /**
-     * Capacete configurado como Ametista:
-     * concede visão no escuro.
-     */
     private static void updateAmethystHelmetPower(
         ServerPlayer player
     ) {
@@ -269,15 +415,11 @@ public final class PassivePowerHandler {
 
         if (shouldHaveNightVision) {
 
-            /*
-             * Não substitui uma visão noturna recebida
-             * por poção, comando ou outro mod.
-             */
             if (
                 currentEffect != null
-                && !isTailoredTraitsNightVision(
-                    currentEffect
-                )
+                    && !isTailoredTraitsNightVision(
+                        currentEffect
+                    )
             ) {
                 AMETHYST_VISION_PLAYERS.remove(
                     player.getUUID()
@@ -286,13 +428,9 @@ public final class PassivePowerHandler {
                 return;
             }
 
-            /*
-             * Renova o efeito quando restarem
-             * menos de dois segundos.
-             */
             if (
                 currentEffect == null
-                || currentEffect.endsWithin(40)
+                    || currentEffect.endsWithin(40)
             ) {
                 player.addEffect(
                     createNightVisionEffect()
@@ -323,10 +461,6 @@ public final class PassivePowerHandler {
         }
     }
 
-    /**
-     * Capacete configurado como Cobre:
-     * mostra o período atual do dia.
-     */
     private static void updateCopperHelmetPower(
         ServerPlayer player
     ) {
@@ -345,16 +479,10 @@ public final class PassivePowerHandler {
             return;
         }
 
-        /*
-         * Atualiza a mensagem a cada dois segundos.
-         */
         if (player.tickCount % 40 != 0) {
             return;
         }
 
-        /*
-         * Um dia completo possui 24.000 ticks.
-         */
         long dayTime =
             player.level()
                 .getOverworldClockTime()
@@ -363,9 +491,6 @@ public final class PassivePowerHandler {
         Component currentPeriod =
             getDayPeriodName(dayTime);
 
-        /*
-         * Mostra a mensagem acima da barra de itens.
-         */
         player.sendOverlayMessage(
             Component.translatable(
                 "message.tailored-traits.current_day_period",
@@ -374,9 +499,6 @@ public final class PassivePowerHandler {
         );
     }
 
-    /**
-     * Converte o horário do mundo em um período do dia.
-     */
     private static Component getDayPeriodName(
         long dayTime
     ) {
@@ -412,10 +534,54 @@ public final class PassivePowerHandler {
         );
     }
 
-    /**
-     * Capacete configurado como Esmeralda:
-     * destaca aldeões próximos.
-     */
+    private static void updateDiamondHelmetPower(
+        ServerPlayer player
+    ) {
+        ItemStack helmet =
+            player.getItemBySlot(
+                EquipmentSlot.HEAD
+            );
+
+        boolean hasDiamondPower =
+            hasSelectedMaterial(
+                helmet,
+                PowerMaterial.DIAMOND
+            );
+
+        if (!hasDiamondPower) {
+            return;
+        }
+
+        if (player.tickCount % 5 != 0) {
+            return;
+        }
+
+        double maximumDistanceSquared =
+            DIAMOND_ENDERMAN_VISION_RANGE
+                * DIAMOND_ENDERMAN_VISION_RANGE;
+
+        for (
+            EnderMan enderman :
+            player.level().getEntitiesOfClass(
+                EnderMan.class,
+                player.getBoundingBox().inflate(
+                    DIAMOND_ENDERMAN_CHECK_RADIUS
+                ),
+                enderman ->
+                    enderman.isAlive()
+                        && enderman.getTarget() == player
+            )
+        ) {
+            if (
+                enderman.distanceToSqr(player)
+                    > maximumDistanceSquared
+            ) {
+                enderman.setTarget(null);
+                enderman.getNavigation().stop();
+            }
+        }
+    }
+
     private static void updateEmeraldHelmetPower(
         ServerPlayer player
     ) {
@@ -461,10 +627,6 @@ public final class PassivePowerHandler {
         }
     }
 
-    /**
-     * Capacete configurado como Ouro:
-     * destaca criaturas nativas do Nether.
-     */
     private static void updateGoldHelmetPower(
         ServerPlayer player
     ) {
@@ -512,10 +674,6 @@ public final class PassivePowerHandler {
         }
     }
 
-    /**
-     * Retorna true quando a entidade pertence
-     * ao grupo de criaturas nativas do Nether.
-     */
     private static boolean isNativeNetherMob(
         LivingEntity entity
     ) {
@@ -533,10 +691,162 @@ public final class PassivePowerHandler {
             || entity.getType() == EntityTypes.ZOMBIFIED_PIGLIN;
     }
 
-    /**
-     * Peitoral configurado como Quartzo:
-     * aumenta o alcance contra entidades em um bloco.
-     */
+    private static void updateRedstoneHelmetPower(
+        ServerPlayer player
+    ) {
+        ItemStack helmet =
+            player.getItemBySlot(
+                EquipmentSlot.HEAD
+            );
+
+        boolean hasRedstonePower =
+            hasSelectedMaterial(
+                helmet,
+                PowerMaterial.REDSTONE
+            );
+
+        if (!hasRedstonePower) {
+            return;
+        }
+
+        if (player.tickCount % 20 != 0) {
+            return;
+        }
+
+        ServerPlayer.RespawnConfig respawnConfig =
+            player.getRespawnConfig();
+
+        if (respawnConfig == null) {
+            player.sendOverlayMessage(
+                Component.literal(
+                    "Cama: não definida"
+                )
+            );
+
+            return;
+        }
+
+        if (
+            !respawnConfig
+                .respawnData()
+                .dimension()
+                .equals(
+                    player.level().dimension()
+                )
+        ) {
+            player.sendOverlayMessage(
+                Component.literal(
+                    "Cama: em outra dimensão"
+                )
+            );
+
+            return;
+        }
+
+        BlockPos bedPosition =
+            respawnConfig
+                .respawnData()
+                .pos();
+
+        double differenceX =
+            bedPosition.getX()
+                + 0.5D
+                - player.getX();
+
+        double differenceZ =
+            bedPosition.getZ()
+                + 0.5D
+                - player.getZ();
+
+        int distance =
+            (int) Math.round(
+                Math.sqrt(
+                    differenceX * differenceX
+                        + differenceZ * differenceZ
+                )
+            );
+
+        String direction =
+            getCompassDirection(
+                differenceX,
+                differenceZ
+            );
+
+        player.sendOverlayMessage(
+            Component.literal(
+                "Cama: "
+                    + direction
+                    + " | "
+                    + distance
+                    + " blocos"
+            )
+        );
+    }
+
+    private static String getCompassDirection(
+        double differenceX,
+        double differenceZ
+    ) {
+        double angle =
+            Math.toDegrees(
+                Math.atan2(
+                    differenceZ,
+                    differenceX
+                )
+            );
+
+        if (
+            angle >= -22.5D
+                && angle < 22.5D
+        ) {
+            return "Leste";
+        }
+
+        if (
+            angle >= 22.5D
+                && angle < 67.5D
+        ) {
+            return "Sudeste";
+        }
+
+        if (
+            angle >= 67.5D
+                && angle < 112.5D
+        ) {
+            return "Sul";
+        }
+
+        if (
+            angle >= 112.5D
+                && angle < 157.5D
+        ) {
+            return "Sudoeste";
+        }
+
+        if (
+            angle >= 157.5D
+                || angle < -157.5D
+        ) {
+            return "Oeste";
+        }
+
+        if (
+            angle >= -157.5D
+                && angle < -112.5D
+        ) {
+            return "Noroeste";
+        }
+
+        if (
+            angle >= -112.5D
+                && angle < -67.5D
+        ) {
+            return "Norte";
+        }
+
+        return "Nordeste";
+    }
+
     private static void updateQuartzChestplatePower(
         ServerPlayer player
     ) {
@@ -586,10 +896,6 @@ public final class PassivePowerHandler {
         }
     }
 
-    /**
-     * Peitoral configurado como Ametista:
-     * aumenta o knockback causado pelos ataques.
-     */
     private static void updateAmethystChestplatePower(
         ServerPlayer player
     ) {
@@ -639,30 +945,71 @@ public final class PassivePowerHandler {
         }
     }
 
-    /**
-     * Peitoral configurado como Netherite:
-     *
-     * ativa resistência ao fogo uma única vez
-     * durante cada exposição ao fogo ou à lava.
-     */
+    private static void updateEmeraldChestplatePower(
+        ServerPlayer player
+    ) {
+        ItemStack chestplate =
+            player.getItemBySlot(
+                EquipmentSlot.CHEST
+            );
+
+        boolean hasEmeraldPower =
+            hasSelectedMaterial(
+                chestplate,
+                PowerMaterial.EMERALD
+            );
+
+        if (
+            !hasEmeraldPower
+                || player.isSpectator()
+        ) {
+            return;
+        }
+
+        if (player.tickCount % 10 != 0) {
+            return;
+        }
+
+        double stopDistanceSquared =
+            EMERALD_VILLAGER_STOP_DISTANCE
+                * EMERALD_VILLAGER_STOP_DISTANCE;
+
+        for (
+            Villager villager :
+            player.level().getEntitiesOfClass(
+                Villager.class,
+                player.getBoundingBox().inflate(
+                    EMERALD_VILLAGER_ATTRACTION_RADIUS
+                ),
+                villager ->
+                    villager.isAlive()
+                        && !villager.isTrading()
+            )
+        ) {
+            if (
+                villager.distanceToSqr(player)
+                    <= stopDistanceSquared
+            ) {
+                continue;
+            }
+
+            villager.getNavigation().moveTo(
+                player,
+                EMERALD_VILLAGER_MOVEMENT_SPEED
+            );
+        }
+    }
+
     private static void updateNetheriteChestplatePower(
         ServerPlayer player
     ) {
         UUID playerId =
             player.getUUID();
 
-        /*
-         * O jogador é considerado exposto enquanto
-         * estiver pegando fogo ou dentro da lava.
-         */
         boolean isExposedToFire =
             player.isOnFire()
                 || player.isInLava();
 
-        /*
-         * Quando o jogador não estiver mais queimando,
-         * o poder será liberado para uma nova ativação.
-         */
         if (!isExposedToFire) {
             NETHERITE_FIRE_POWER_LOCKED.remove(
                 playerId
@@ -686,10 +1033,6 @@ public final class PassivePowerHandler {
             return;
         }
 
-        /*
-         * Se o jogador já ativou o poder durante
-         * esta exposição, não renova o efeito.
-         */
         if (
             NETHERITE_FIRE_POWER_LOCKED.contains(
                 playerId
@@ -698,10 +1041,6 @@ public final class PassivePowerHandler {
             return;
         }
 
-        /*
-         * Bloqueia imediatamente uma nova ativação
-         * durante esta mesma exposição ao fogo.
-         */
         NETHERITE_FIRE_POWER_LOCKED.add(
             playerId
         );
@@ -711,13 +1050,6 @@ public final class PassivePowerHandler {
                 MobEffects.FIRE_RESISTANCE
             );
 
-        /*
-         * Caso o jogador já possua uma resistência
-         * ao fogo mais longa, ela não será substituída.
-         *
-         * Mesmo assim, a habilidade é considerada usada
-         * durante esta exposição ao fogo.
-         */
         if (
             currentEffect != null
                 && currentEffect.getDuration()
@@ -726,12 +1058,6 @@ public final class PassivePowerHandler {
             return;
         }
 
-        /*
-         * Aplica exatamente cinco segundos.
-         *
-         * O efeito não será renovado enquanto
-         * o jogador continuar queimando.
-         */
         player.addEffect(
             new MobEffectInstance(
                 MobEffects.FIRE_RESISTANCE,
@@ -744,10 +1070,57 @@ public final class PassivePowerHandler {
         );
     }
 
-    /**
-     * Calça configurada como Quartzo:
-     * aumenta o dano corpo a corpo em 20%.
-     */
+    private static void updateLapisChestplatePower(
+        ServerPlayer player
+    ) {
+        UUID playerId =
+            player.getUUID();
+
+        int currentExperienceLevel =
+            player.experienceLevel;
+
+        Integer previousExperienceLevel =
+            LAST_EXPERIENCE_LEVELS.put(
+                playerId,
+                currentExperienceLevel
+            );
+
+        if (previousExperienceLevel == null) {
+            return;
+        }
+
+        if (
+            currentExperienceLevel
+                <= previousExperienceLevel
+        ) {
+            return;
+        }
+
+        ItemStack chestplate =
+            player.getItemBySlot(
+                EquipmentSlot.CHEST
+            );
+
+        boolean hasLapisPower =
+            hasSelectedMaterial(
+                chestplate,
+                PowerMaterial.LAPIS_LAZULI
+            );
+
+        if (!hasLapisPower) {
+            return;
+        }
+
+        int levelsGained =
+            currentExperienceLevel
+                - previousExperienceLevel;
+
+        player.heal(
+            LAPIS_LEVEL_UP_HEAL_AMOUNT
+                * levelsGained
+        );
+    }
+
     private static void updateQuartzLeggingsPower(
         ServerPlayer player
     ) {
@@ -797,10 +1170,6 @@ public final class PassivePowerHandler {
         }
     }
 
-    /**
-     * Calça configurada como Ferro:
-     * reduz o dano de queda em 10%.
-     */
     private static void updateIronLeggingsPower(
         ServerPlayer player
     ) {
@@ -850,10 +1219,224 @@ public final class PassivePowerHandler {
         }
     }
 
+    private static void updateAmethystLeggingsPower(
+        ServerPlayer player
+    ) {
+        ItemStack leggings =
+            player.getItemBySlot(
+                EquipmentSlot.LEGS
+            );
+
+        boolean hasAmethystPower =
+            hasSelectedMaterial(
+                leggings,
+                PowerMaterial.AMETHYST
+            );
+
+        if (
+            !hasAmethystPower
+                || !player.isShiftKeyDown()
+                || player.isSpectator()
+        ) {
+            return;
+        }
+
+        if (player.tickCount % 10 != 0) {
+            return;
+        }
+
+        for (
+            LivingEntity entity :
+            player.level().getEntitiesOfClass(
+                LivingEntity.class,
+                player.getBoundingBox().inflate(
+                    AMETHYST_ECHOLOCATION_RADIUS
+                ),
+                entity ->
+                    entity.isAlive()
+                        && entity != player
+            )
+        ) {
+            entity.addEffect(
+                new MobEffectInstance(
+                    MobEffects.GLOWING,
+                    AMETHYST_ECHOLOCATION_GLOW_DURATION,
+                    0,
+                    true,
+                    false,
+                    false
+                )
+            );
+        }
+    }
+
+    private static void updateRedstoneLeggingsPower(
+        ServerPlayer player
+    ) {
+        ItemStack leggings =
+            player.getItemBySlot(
+                EquipmentSlot.LEGS
+            );
+
+        boolean hasRedstonePower =
+            hasSelectedMaterial(
+                leggings,
+                PowerMaterial.REDSTONE
+            );
+
+        if (
+            !hasRedstonePower
+                || player.isSpectator()
+        ) {
+            return;
+        }
+
+        BlockPos blockBelow =
+            player.getBlockPosBelowThatAffectsMyMovement();
+
+        boolean isStandingOnRedstone =
+            player.level()
+                .getBlockState(blockBelow)
+                .is(Blocks.REDSTONE_BLOCK);
+
+        if (!isStandingOnRedstone) {
+            return;
+        }
+
+        if (
+            player.tickCount
+                % REDSTONE_HUNGER_INTERVAL
+                != 0
+        ) {
+            return;
+        }
+
+        FoodData foodData =
+            player.getFoodData();
+
+        if (foodData.getFoodLevel() >= 20) {
+            return;
+        }
+
+        foodData.eat(
+            REDSTONE_HUNGER_AMOUNT,
+            REDSTONE_HUNGER_SATURATION
+        );
+    }
+
     /**
-     * Botas configuradas como Cobre:
-     * aumenta a velocidade de movimento em 10%.
+     * Calça de Lápis-lazúli:
+     * concede 25% de experiência adicional.
      */
+    private static void updateLapisLeggingsPower(
+        ServerPlayer player
+    ) {
+        UUID playerId =
+            player.getUUID();
+
+        int currentTotalExperience =
+            player.totalExperience;
+
+        Integer previousTotalExperience =
+            LAST_TOTAL_EXPERIENCE.put(
+                playerId,
+                currentTotalExperience
+            );
+
+        /*
+         * Primeira verificação do jogador.
+         */
+        if (previousTotalExperience == null) {
+            return;
+        }
+
+        ItemStack leggings =
+            player.getItemBySlot(
+                EquipmentSlot.LEGS
+            );
+
+        boolean hasLapisPower =
+            hasSelectedMaterial(
+                leggings,
+                PowerMaterial.LAPIS_LAZULI
+            );
+
+        /*
+         * Sem a calça, não acumula frações do bônus.
+         */
+        if (!hasLapisPower) {
+            LAPIS_EXPERIENCE_BONUS_REMAINDERS.remove(
+                playerId
+            );
+
+            return;
+        }
+
+        /*
+         * Nenhuma experiência foi obtida.
+         *
+         * Reduções de experiência também não
+         * concedem bônus.
+         */
+        if (
+            currentTotalExperience
+                <= previousTotalExperience
+        ) {
+            return;
+        }
+
+        int experienceGained =
+            currentTotalExperience
+                - previousTotalExperience;
+
+        double previousRemainder =
+            LAPIS_EXPERIENCE_BONUS_REMAINDERS
+                .getOrDefault(
+                    playerId,
+                    0.0D
+                );
+
+        double calculatedBonus =
+            experienceGained
+                * LAPIS_EXPERIENCE_BONUS_PERCENTAGE
+                + previousRemainder;
+
+        int wholeBonusPoints =
+            (int) Math.floor(
+                calculatedBonus
+            );
+
+        double newRemainder =
+            calculatedBonus
+                - wholeBonusPoints;
+
+        LAPIS_EXPERIENCE_BONUS_REMAINDERS.put(
+            playerId,
+            newRemainder
+        );
+
+        /*
+         * Ainda não acumulou um ponto inteiro.
+         */
+        if (wholeBonusPoints <= 0) {
+            return;
+        }
+
+        player.giveExperiencePoints(
+            wholeBonusPoints
+        );
+
+        /*
+         * Salva o total após o bônus para impedir
+         * que a experiência concedida pelo próprio
+         * poder gere outro bônus no próximo tick.
+         */
+        LAST_TOTAL_EXPERIENCE.put(
+            playerId,
+            player.totalExperience
+        );
+    }
+
     private static void updateCopperBootsPower(
         ServerPlayer player
     ) {
@@ -903,10 +1486,174 @@ public final class PassivePowerHandler {
         }
     }
 
-    /**
-     * Botas configuradas como Quartzo:
-     * salto de aproximadamente 2,5 blocos.
-     */
+    private static void updateGoldBootsPower(
+        ServerPlayer player
+    ) {
+        ItemStack boots =
+            player.getItemBySlot(
+                EquipmentSlot.FEET
+            );
+
+        boolean shouldHavePiglinSpeed =
+            hasSelectedMaterial(
+                boots,
+                PowerMaterial.GOLD
+            );
+
+        AttributeInstance movementSpeed =
+            player.getAttribute(
+                Attributes.MOVEMENT_SPEED
+            );
+
+        if (movementSpeed == null) {
+            return;
+        }
+
+        if (!shouldHavePiglinSpeed) {
+
+            if (
+                movementSpeed.hasModifier(
+                    GOLD_BOOTS_SPEED_ID
+                )
+            ) {
+                movementSpeed.removeModifier(
+                    GOLD_BOOTS_SPEED_ID
+                );
+            }
+
+            return;
+        }
+
+        double requiredSpeedDifference =
+            PIGLIN_MOVEMENT_SPEED
+                - movementSpeed.getBaseValue();
+
+        AttributeModifier piglinSpeedModifier =
+            new AttributeModifier(
+                GOLD_BOOTS_SPEED_ID,
+                requiredSpeedDifference,
+                AttributeModifier.Operation.ADD_VALUE
+            );
+
+        movementSpeed.addOrUpdateTransientModifier(
+            piglinSpeedModifier
+        );
+    }
+
+    private static void updateDiamondBootsLevitationPower(
+        ServerPlayer player
+    ) {
+        UUID playerId =
+            player.getUUID();
+
+        ItemStack boots =
+            player.getItemBySlot(
+                EquipmentSlot.FEET
+            );
+
+        boolean hasDiamondPower =
+            hasSelectedMaterial(
+                boots,
+                PowerMaterial.DIAMOND
+            );
+
+        if (
+            !hasDiamondPower
+                || player.isSpectator()
+        ) {
+            resetDiamondLevitationCharge(
+                playerId
+            );
+
+            return;
+        }
+
+        boolean isHoldingJump =
+            player.getLastClientInput().jump();
+
+        if (!isHoldingJump) {
+            resetDiamondLevitationCharge(
+                playerId
+            );
+
+            return;
+        }
+
+        if (
+            DIAMOND_LEVITATION_LOCKED.contains(
+                playerId
+            )
+        ) {
+            return;
+        }
+
+        int currentCharge =
+            DIAMOND_LEVITATION_CHARGE_TICKS
+                .getOrDefault(
+                    playerId,
+                    0
+                );
+
+        int newCharge =
+            currentCharge + 1;
+
+        if (
+            newCharge
+                < DIAMOND_LEVITATION_CHARGE_DURATION
+        ) {
+            DIAMOND_LEVITATION_CHARGE_TICKS.put(
+                playerId,
+                newCharge
+            );
+
+            return;
+        }
+
+        DIAMOND_LEVITATION_CHARGE_TICKS.remove(
+            playerId
+        );
+
+        DIAMOND_LEVITATION_LOCKED.add(
+            playerId
+        );
+
+        MobEffectInstance currentLevitation =
+            player.getEffect(
+                MobEffects.LEVITATION
+            );
+
+        if (
+            currentLevitation != null
+                && currentLevitation.getDuration()
+                    >= DIAMOND_LEVITATION_EFFECT_DURATION
+        ) {
+            return;
+        }
+
+        player.addEffect(
+            new MobEffectInstance(
+                MobEffects.LEVITATION,
+                DIAMOND_LEVITATION_EFFECT_DURATION,
+                0,
+                true,
+                false,
+                true
+            )
+        );
+    }
+
+    private static void resetDiamondLevitationCharge(
+        UUID playerId
+    ) {
+        DIAMOND_LEVITATION_CHARGE_TICKS.remove(
+            playerId
+        );
+
+        DIAMOND_LEVITATION_LOCKED.remove(
+            playerId
+        );
+    }
+
     private static void updateQuartzBootsPower(
         ServerPlayer player
     ) {
@@ -957,9 +1704,59 @@ public final class PassivePowerHandler {
     }
 
     /**
-     * Verifica se a peça possui enfeite de Stevium
-     * e está configurada com o material esperado.
+     * Botas de Redstone:
+     * remove a redução de velocidade aplicada
+     * pelo bloco sob o jogador.
      */
+    private static void updateRedstoneBootsPower(
+        ServerPlayer player
+    ) {
+        ItemStack boots =
+            player.getItemBySlot(
+                EquipmentSlot.FEET
+            );
+
+        boolean hasRedstonePower =
+            hasSelectedMaterial(
+                boots,
+                PowerMaterial.REDSTONE
+            );
+
+        AttributeInstance movementEfficiency =
+            player.getAttribute(
+                Attributes.MOVEMENT_EFFICIENCY
+            );
+
+        if (movementEfficiency == null) {
+            return;
+        }
+
+        if (hasRedstonePower) {
+
+            if (
+                !movementEfficiency.hasModifier(
+                    REDSTONE_BOOTS_MOVEMENT_EFFICIENCY_ID
+                )
+            ) {
+                movementEfficiency.addTransientModifier(
+                    REDSTONE_BOOTS_MOVEMENT_EFFICIENCY_MODIFIER
+                );
+            }
+
+            return;
+        }
+
+        if (
+            movementEfficiency.hasModifier(
+                REDSTONE_BOOTS_MOVEMENT_EFFICIENCY_ID
+            )
+        ) {
+            movementEfficiency.removeModifier(
+                REDSTONE_BOOTS_MOVEMENT_EFFICIENCY_ID
+            );
+        }
+    }
+
     private static boolean hasSelectedMaterial(
         ItemStack armorPiece,
         PowerMaterial expectedMaterial
@@ -983,10 +1780,6 @@ public final class PassivePowerHandler {
         );
     }
 
-    /**
-     * Cria a visão noturna fornecida
-     * pelo capacete de Ametista.
-     */
     private static MobEffectInstance
         createNightVisionEffect() {
 
@@ -1000,10 +1793,6 @@ public final class PassivePowerHandler {
         );
     }
 
-    /**
-     * Verifica se a visão noturna atual
-     * foi criada pelo Tailored Traits.
-     */
     private static boolean
         isTailoredTraitsNightVision(
             MobEffectInstance effect

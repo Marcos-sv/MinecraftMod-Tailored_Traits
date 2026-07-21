@@ -1,14 +1,14 @@
 {
-	"required": true,
-	"package": "com.marcos.tailoredtraits.mixin",
-	"compatibilityLevel": "JAVA_25",
-	"mixins": [
-		"ResultSlotMixin"
-	],
-	"injectors": {
-		"defaultRequire": 1
-	},
-	"overwrites": {
-		"requireAnnotations": true
-	}
+    "required": true,
+    "package": "com.marcos.tailoredtraits.mixin",
+    "compatibilityLevel": "JAVA_25",
+    "mixins": [
+        "ResultSlotMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    },
+    "overwrites": {
+        "requireAnnotations": true
+    }
 }
