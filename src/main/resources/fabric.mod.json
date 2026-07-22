@@ -22,7 +22,10 @@
             "com.marcos.tailoredtraits.power.AmethystEchoPowerInitializer",
             "com.marcos.tailoredtraits.power.ReactiveFullSetPowerInitializer",
             "com.marcos.tailoredtraits.power.QuartzFullSetPowerInitializer",
-            "com.marcos.tailoredtraits.power.ResinFullSetPowerInitializer"
+            "com.marcos.tailoredtraits.power.ResinFullSetPowerInitializer",
+            "com.marcos.tailoredtraits.power.RedstoneFullSetPowerInitializer",
+            "com.marcos.tailoredtraits.power.ActiveFullSetPowerInitializer",
+            "com.marcos.tailoredtraits.power.SteviumTamingInitializer"
         ],
         "client": [
             "com.marcos.tailoredtraits.client.TailoredTraitsClient"

@@ -46,7 +46,7 @@ public final class PassivePowerHandler {
 
     /*
      * Botas de Cobre:
-     * +10% de velocidade.
+     * +20% de velocidade.
      */
     private static final Identifier
         COPPER_BOOTS_SPEED_ID =
@@ -58,7 +58,7 @@ public final class PassivePowerHandler {
         COPPER_BOOTS_SPEED_MODIFIER =
             new AttributeModifier(
                 COPPER_BOOTS_SPEED_ID,
-                0.10D,
+                0.20D,
                 AttributeModifier.Operation
                     .ADD_MULTIPLIED_TOTAL
             );
@@ -88,11 +88,11 @@ public final class PassivePowerHandler {
      */
     private static final int
         DIAMOND_LEVITATION_CHARGE_DURATION =
-            100;
+            60;
 
     private static final int
         DIAMOND_LEVITATION_EFFECT_DURATION =
-            60;
+            65;
 
     /*
      * Botas de Quartzo.
@@ -153,7 +153,7 @@ public final class PassivePowerHandler {
 
     /*
      * Calça de Ferro:
-     * -10% de dano de queda.
+     * -15% de dano de queda.
      */
     private static final Identifier
         IRON_LEGGINGS_FALL_DAMAGE_ID =
@@ -165,7 +165,7 @@ public final class PassivePowerHandler {
         IRON_LEGGINGS_FALL_DAMAGE_MODIFIER =
             new AttributeModifier(
                 IRON_LEGGINGS_FALL_DAMAGE_ID,
-                -0.10D,
+                -0.15D,
                 AttributeModifier.Operation
                     .ADD_MULTIPLIED_TOTAL
             );

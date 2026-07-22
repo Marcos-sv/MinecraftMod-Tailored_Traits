@@ -2,6 +2,8 @@ package com.marcos.tailoredtraits.mixin;
 
 import com.marcos.tailoredtraits.power
     .CopperRedstonePowerInitializer;
+import com.marcos.tailoredtraits.power
+    .RedstoneFullSetPowerInitializer;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -21,47 +23,71 @@ import org.spongepowered.asm.mixin.injection.callback
 public abstract class BlockStateCopperSignalMixin {
 
     /*
-     * Força máxima de redstone.
+     * Força máxima de Redstone.
      */
     @Unique
     private static final int
-        COPPER_SIGNAL_STRENGTH =
+        TAILORED_TRAITS_SIGNAL_STRENGTH =
             15;
 
     /**
-     * Faz o bloco de apoio emitir
-     * um sinal comum de redstone.
+     * Faz o bloco emitir um sinal comum
+     * quando ele estiver:
+     *
+     * - diretamente sob um jogador com
+     *   a calça configurada como Cobre;
+     *
+     * ou
+     *
+     * - dentro do campo criado pelo
+     *   conjunto completo de Redstone.
      */
     @Inject(
         method = "getSignal",
         at = @At("HEAD"),
         cancellable = true
     )
-    private void tailoredTraits$emitCopperSignal(
+    private void tailoredTraits$emitPowerSignal(
         BlockGetter level,
         BlockPos position,
         Direction direction,
         CallbackInfoReturnable<Integer> info
     ) {
         if (
-            level
-                instanceof ServerLevel serverLevel
-                && CopperRedstonePowerInitializer
-                    .isActiveSource(
-                        serverLevel,
-                        position
-                    )
+            !(level
+                instanceof ServerLevel serverLevel)
+        ) {
+            return;
+        }
+
+        boolean isCopperSource =
+            CopperRedstonePowerInitializer
+                .isActiveSource(
+                    serverLevel,
+                    position
+                );
+
+        boolean isInsideRedstoneField =
+            RedstoneFullSetPowerInitializer
+                .isWithinActiveField(
+                    serverLevel,
+                    position
+                );
+
+        if (
+            isCopperSource
+                || isInsideRedstoneField
         ) {
             info.setReturnValue(
-                COPPER_SIGNAL_STRENGTH
+                TAILORED_TRAITS_SIGNAL_STRENGTH
             );
         }
     }
 
     /**
      * Também fornece sinal direto para
-     * pistões e outros componentes que
-     * utilizam energia forte.
+     * pistões, lâmpadas e componentes
+     * que verificam energia forte.
      */
     @Inject(
         method = "getDirectSignal",
@@ -69,23 +95,39 @@ public abstract class BlockStateCopperSignalMixin {
         cancellable = true
     )
     private void
-        tailoredTraits$emitDirectCopperSignal(
+        tailoredTraits$emitDirectPowerSignal(
             BlockGetter level,
             BlockPos position,
             Direction direction,
             CallbackInfoReturnable<Integer> info
         ) {
         if (
-            level
-                instanceof ServerLevel serverLevel
-                && CopperRedstonePowerInitializer
-                    .isActiveSource(
-                        serverLevel,
-                        position
-                    )
+            !(level
+                instanceof ServerLevel serverLevel)
+        ) {
+            return;
+        }
+
+        boolean isCopperSource =
+            CopperRedstonePowerInitializer
+                .isActiveSource(
+                    serverLevel,
+                    position
+                );
+
+        boolean isInsideRedstoneField =
+            RedstoneFullSetPowerInitializer
+                .isWithinActiveField(
+                    serverLevel,
+                    position
+                );
+
+        if (
+            isCopperSource
+                || isInsideRedstoneField
         ) {
             info.setReturnValue(
-                COPPER_SIGNAL_STRENGTH
+                TAILORED_TRAITS_SIGNAL_STRENGTH
             );
         }
     }
