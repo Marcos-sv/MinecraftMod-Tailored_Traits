@@ -15,15 +15,41 @@ import net.minecraft.world.item.ItemStack;
 
 public final class ModNetworking {
 
-    private static final int INDIVIDUAL_POWER_COST = 2;
+    /*
+     * Custo para alterar o poder
+     * individual de uma peça.
+     */
+    private static final int
+        INDIVIDUAL_POWER_COST =
+            2;
+
+    /*
+     * Custo para alterar o poder
+     * do conjunto completo.
+     */
+    private static final int
+        FULL_SET_POWER_COST =
+            5;
+
+    /*
+     * Peças obrigatórias para salvar
+     * o poder do conjunto completo.
+     */
+    private static final EquipmentSlot[]
+        FULL_SET_SLOTS = {
+            EquipmentSlot.HEAD,
+            EquipmentSlot.CHEST,
+            EquipmentSlot.LEGS,
+            EquipmentSlot.FEET
+        };
 
     private ModNetworking() {
     }
 
     public static void initialize() {
+
         /*
-         * Registra o tipo de pacote que vai
-         * do cliente para o servidor.
+         * Pacote do poder individual.
          */
         PayloadTypeRegistry
             .serverboundPlay()
@@ -33,12 +59,31 @@ public final class ModNetworking {
             );
 
         /*
-         * Registra o código executado pelo servidor
-         * quando o pacote chega.
+         * Pacote do poder de conjunto.
+         */
+        PayloadTypeRegistry
+            .serverboundPlay()
+            .register(
+                SelectFullSetPowerPayload.TYPE,
+                SelectFullSetPowerPayload.CODEC
+            );
+
+        /*
+         * Processamento da escolha individual.
          */
         ServerPlayNetworking.registerGlobalReceiver(
             SelectIndividualPowerPayload.TYPE,
-            ModNetworking::handleIndividualPowerSelection
+            ModNetworking
+                ::handleIndividualPowerSelection
+        );
+
+        /*
+         * Processamento da escolha do conjunto.
+         */
+        ServerPlayNetworking.registerGlobalReceiver(
+            SelectFullSetPowerPayload.TYPE,
+            ModNetworking
+                ::handleFullSetPowerSelection
         );
 
         TailoredTraits.LOGGER.info(
@@ -46,19 +91,29 @@ public final class ModNetworking {
         );
     }
 
+    /**
+     * Processa a escolha individual
+     * de uma peça da armadura.
+     */
     private static void handleIndividualPowerSelection(
         SelectIndividualPowerPayload payload,
         ServerPlayNetworking.Context context
     ) {
-        ServerPlayer player = context.player();
+        ServerPlayer player =
+            context.player();
 
-        EquipmentSlot slot = payload.slot();
+        EquipmentSlot slot =
+            payload.slot();
 
         /*
          * Impede que o cliente envie mão principal,
          * sela, corpo de animal ou outro espaço inválido.
          */
-        if (!isSupportedArmorSlot(slot)) {
+        if (
+            !isSupportedArmorSlot(
+                slot
+            )
+        ) {
             player.sendSystemMessage(
                 Component.translatable(
                     "message.tailored-traits.invalid_selection"
@@ -79,7 +134,8 @@ public final class ModNetworking {
          */
         if (
             selectedMaterial == null
-            || !selectedMaterial.isIndividualOption()
+                || !selectedMaterial
+                    .isIndividualOption()
         ) {
             player.sendSystemMessage(
                 Component.translatable(
@@ -91,7 +147,9 @@ public final class ModNetworking {
         }
 
         ItemStack armorStack =
-            player.getItemBySlot(slot);
+            player.getItemBySlot(
+                slot
+            );
 
         /*
          * O servidor confirma que a peça equipada
@@ -138,7 +196,9 @@ public final class ModNetworking {
         /*
          * No modo criativo, a alteração é gratuita.
          */
-        if (!player.getAbilities().instabuild) {
+        if (
+            !player.getAbilities().instabuild
+        ) {
             if (
                 player.experienceLevel
                     < INDIVIDUAL_POWER_COST
@@ -179,6 +239,216 @@ public final class ModNetworking {
         );
     }
 
+    /**
+     * Processa a seleção do poder
+     * de conjunto completo.
+     */
+    private static void handleFullSetPowerSelection(
+        SelectFullSetPowerPayload payload,
+        ServerPlayNetworking.Context context
+    ) {
+        ServerPlayer player =
+            context.player();
+
+        PowerMaterial selectedMaterial =
+            PowerMaterial.fromId(
+                payload.materialId()
+            );
+
+        /*
+         * Todos os materiais existentes podem
+         * ser usados como poder de conjunto.
+         *
+         * Isso inclui o próprio Stevium.
+         */
+        if (selectedMaterial == null) {
+            player.sendSystemMessage(
+                Component.translatable(
+                    "message.tailored-traits.invalid_selection"
+                )
+            );
+
+            return;
+        }
+
+        /*
+         * O servidor verifica novamente as quatro
+         * peças, sem confiar apenas no menu cliente.
+         */
+        if (
+            !hasCompleteSteviumSet(
+                player
+            )
+        ) {
+            player.sendSystemMessage(
+                Component.literal(
+                    "Equipe as quatro peças com acabamento "
+                        + "de Stevium para selecionar um "
+                        + "poder de conjunto."
+                )
+            );
+
+            return;
+        }
+
+        /*
+         * Selecionar novamente o mesmo material
+         * não cobra níveis.
+         *
+         * A escolha precisa estar igual nas
+         * quatro peças para ser considerada
+         * a mesma seleção.
+         */
+        if (
+            allPiecesAlreadyUseSetMaterial(
+                player,
+                selectedMaterial
+            )
+        ) {
+            player.sendSystemMessage(
+                Component.literal(
+                    "Esse poder de conjunto já está selecionado."
+                )
+            );
+
+            return;
+        }
+
+        /*
+         * No modo criativo, a seleção
+         * do conjunto é gratuita.
+         */
+        if (
+            !player.getAbilities().instabuild
+        ) {
+            if (
+                player.experienceLevel
+                    < FULL_SET_POWER_COST
+            ) {
+                player.sendSystemMessage(
+                    Component.literal(
+                        "São necessários 5 níveis de experiência "
+                            + "para alterar o poder do conjunto."
+                    )
+                );
+
+                return;
+            }
+
+            player.giveExperienceLevels(
+                -FULL_SET_POWER_COST
+            );
+        }
+
+        /*
+         * Salva exatamente a mesma seleção
+         * nas quatro peças equipadas.
+         */
+        for (
+            EquipmentSlot slot :
+            FULL_SET_SLOTS
+        ) {
+            ItemStack armorPiece =
+                player.getItemBySlot(
+                    slot
+                );
+
+            armorPiece.set(
+                ModComponents
+                    .SELECTED_SET_POWER_MATERIAL,
+                selectedMaterial.getId()
+            );
+        }
+
+        /*
+         * Sincroniza as quatro peças
+         * modificadas com o cliente.
+         */
+        player.inventoryMenu.broadcastChanges();
+
+        player.sendSystemMessage(
+            Component.literal(
+                "Poder de conjunto salvo: "
+            ).append(
+                selectedMaterial.getDisplayName()
+            ).append(
+                Component.literal(".")
+            )
+        );
+    }
+
+    /**
+     * Verifica se o jogador está usando
+     * quatro peças com acabamento de Stevium.
+     */
+    private static boolean hasCompleteSteviumSet(
+        ServerPlayer player
+    ) {
+        for (
+            EquipmentSlot slot :
+            FULL_SET_SLOTS
+        ) {
+            ItemStack armorPiece =
+                player.getItemBySlot(
+                    slot
+                );
+
+            if (
+                !SteviumArmorUtil.hasSteviumTrim(
+                    armorPiece
+                )
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Verifica se todas as quatro peças
+     * já possuem o material escolhido.
+     */
+    private static boolean
+        allPiecesAlreadyUseSetMaterial(
+            ServerPlayer player,
+            PowerMaterial selectedMaterial
+        ) {
+        String selectedMaterialId =
+            selectedMaterial.getId();
+
+        for (
+            EquipmentSlot slot :
+            FULL_SET_SLOTS
+        ) {
+            ItemStack armorPiece =
+                player.getItemBySlot(
+                    slot
+                );
+
+            String currentMaterialId =
+                armorPiece.getOrDefault(
+                    ModComponents
+                        .SELECTED_SET_POWER_MATERIAL,
+                    ""
+                );
+
+            if (
+                !selectedMaterialId.equals(
+                    currentMaterialId
+                )
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Verifica se o espaço enviado corresponde
+     * a uma peça de armadura suportada.
+     */
     private static boolean isSupportedArmorSlot(
         EquipmentSlot slot
     ) {
@@ -188,6 +458,10 @@ public final class ModNetworking {
             || slot == EquipmentSlot.FEET;
     }
 
+    /**
+     * Retorna o nome traduzido da peça
+     * alterada individualmente.
+     */
     private static Component getSlotDisplayName(
         EquipmentSlot slot
     ) {

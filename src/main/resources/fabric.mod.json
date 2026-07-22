@@ -19,7 +19,10 @@
             "com.marcos.tailoredtraits.power.NetheriteMovementPowerInitializer",
             "com.marcos.tailoredtraits.power.ResinMovementPowerInitializer",
             "com.marcos.tailoredtraits.power.CopperRedstonePowerInitializer",
-            "com.marcos.tailoredtraits.power.AmethystEchoPowerInitializer"
+            "com.marcos.tailoredtraits.power.AmethystEchoPowerInitializer",
+            "com.marcos.tailoredtraits.power.ReactiveFullSetPowerInitializer",
+            "com.marcos.tailoredtraits.power.QuartzFullSetPowerInitializer",
+            "com.marcos.tailoredtraits.power.ResinFullSetPowerInitializer"
         ],
         "client": [
             "com.marcos.tailoredtraits.client.TailoredTraitsClient"

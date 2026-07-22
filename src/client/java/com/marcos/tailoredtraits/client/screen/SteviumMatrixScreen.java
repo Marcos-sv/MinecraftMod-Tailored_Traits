@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.marcos.tailoredtraits.component.ModComponents;
+import com.marcos.tailoredtraits.network.SelectFullSetPowerPayload;
 import com.marcos.tailoredtraits.network.SelectIndividualPowerPayload;
+import com.marcos.tailoredtraits.power.FullSetPowerUtil;
 import com.marcos.tailoredtraits.power.PowerMaterial;
 import com.marcos.tailoredtraits.power.SteviumArmorUtil;
 
@@ -21,49 +23,117 @@ import net.minecraft.world.item.ItemStack;
 
 public class SteviumMatrixScreen extends Screen {
 
-    private static final int PANEL_WIDTH = 360;
-    private static final int PANEL_HEIGHT = 276;
+    private static final int
+        PANEL_WIDTH =
+            440;
 
-    private static final int ARMOR_BUTTON_WIDTH = 78;
-    private static final int ARMOR_BUTTON_HEIGHT = 24;
-    private static final int ARMOR_BUTTON_GAP = 8;
+    private static final int
+        PANEL_HEIGHT =
+            298;
 
-    private static final int MATERIAL_BUTTON_WIDTH = 78;
-    private static final int MATERIAL_BUTTON_HEIGHT = 20;
-    private static final int MATERIAL_BUTTON_GAP_X = 6;
-    private static final int MATERIAL_BUTTON_GAP_Y = 3;
+    private static final int
+        ARMOR_BUTTON_WIDTH =
+            78;
 
-    private EquipmentSlot selectedSlot;
+    private static final int
+        ARMOR_BUTTON_HEIGHT =
+            24;
+
+    private static final int
+        ARMOR_BUTTON_GAP =
+            8;
+
+    private static final int
+        MATERIAL_BUTTON_WIDTH =
+            78;
+
+    private static final int
+        MATERIAL_BUTTON_HEIGHT =
+            20;
+
+    private static final int
+        MATERIAL_BUTTON_GAP_X =
+            6;
+
+    private static final int
+        MATERIAL_BUTTON_GAP_Y =
+            3;
 
     /*
-     * Valores já salvos nas armaduras.
+     * Peça individual selecionada.
+     *
+     * Fica null durante a edição
+     * do conjunto completo.
+     */
+    private EquipmentSlot
+        selectedSlot;
+
+    /*
+     * Indica que o jogador selecionou
+     * o botão de conjunto completo.
+     */
+    private boolean
+        fullSetMode;
+
+    /*
+     * Valores individuais já salvos
+     * nas armaduras.
      */
     private final Map<
         EquipmentSlot,
         PowerMaterial
     > savedSelections =
-        new EnumMap<>(EquipmentSlot.class);
+        new EnumMap<>(
+            EquipmentSlot.class
+        );
 
     /*
-     * Valores escolhidos no menu antes da confirmação.
+     * Valores individuais escolhidos
+     * no menu antes da confirmação.
      */
     private final Map<
         EquipmentSlot,
         PowerMaterial
     > temporarySelections =
-        new EnumMap<>(EquipmentSlot.class);
+        new EnumMap<>(
+            EquipmentSlot.class
+        );
+
+    /*
+     * Material de conjunto atualmente
+     * salvo nas quatro peças.
+     */
+    private PowerMaterial
+        savedFullSetSelection;
+
+    /*
+     * Material de conjunto selecionado
+     * temporariamente no menu.
+     */
+    private PowerMaterial
+        temporaryFullSetSelection;
 
     private final List<MaterialButtonEntry>
         materialButtons =
             new ArrayList<>();
 
-    private Button confirmButton;
+    private Button
+        confirmButton;
 
-    private boolean helmetUnlocked;
-    private boolean chestplateUnlocked;
-    private boolean leggingsUnlocked;
-    private boolean bootsUnlocked;
-    private boolean fullSetUnlocked;
+    private boolean
+        helmetUnlocked;
+
+    private boolean
+        chestplateUnlocked;
+
+    private boolean
+        leggingsUnlocked;
+
+    private boolean
+        bootsUnlocked;
+
+    private boolean
+        fullSetUnlocked;
 
     public SteviumMatrixScreen() {
         super(
@@ -81,12 +151,18 @@ public class SteviumMatrixScreen extends Screen {
         materialButtons.clear();
 
         int panelLeft =
-            (this.width - PANEL_WIDTH) / 2;
+            (
+                this.width
+                    - PANEL_WIDTH
+            ) / 2;
 
         int panelTop =
-            (this.height - PANEL_HEIGHT) / 2;
+            (
+                this.height
+                    - PANEL_HEIGHT
+            ) / 2;
 
-        createArmorButtons(
+        createSelectionButtons(
             panelLeft,
             panelTop
         );
@@ -97,34 +173,51 @@ public class SteviumMatrixScreen extends Screen {
         );
 
         /*
-         * Botão que envia a alteração ao servidor.
+         * Botão que envia a alteração
+         * escolhida ao servidor.
          */
-        confirmButton = Button.builder(
-            Component.translatable(
-                "screen.tailored-traits.confirm"
-            ),
-            button -> confirmSelection()
-        ).bounds(
-            panelLeft + (PANEL_WIDTH - 110) / 2,
-            panelTop + 180,
-            110,
-            20
-        ).build();
+        confirmButton =
+            Button.builder(
+                Component.translatable(
+                    "screen.tailored-traits.confirm"
+                ),
+                button ->
+                    confirmSelection()
+            ).bounds(
+                panelLeft
+                    + (
+                        PANEL_WIDTH
+                            - 110
+                    ) / 2,
+                panelTop + 182,
+                110,
+                20
+            ).build();
 
-        confirmButton.active = false;
+        confirmButton.active =
+            false;
 
-        this.addRenderableWidget(confirmButton);
+        this.addRenderableWidget(
+            confirmButton
+        );
 
         /*
          * Botão para fechar o menu.
          */
         this.addRenderableWidget(
             Button.builder(
-                Component.translatable("gui.done"),
-                button -> this.onClose()
+                Component.translatable(
+                    "gui.done"
+                ),
+                button ->
+                    this.onClose()
             ).bounds(
-                panelLeft + (PANEL_WIDTH - 90) / 2,
-                panelTop + 248,
+                panelLeft
+                    + (
+                        PANEL_WIDTH
+                            - 90
+                    ) / 2,
+                panelTop + 268,
                 90,
                 20
             ).build()
@@ -134,19 +227,34 @@ public class SteviumMatrixScreen extends Screen {
         updateConfirmButton();
     }
 
-    private void createArmorButtons(
+    /**
+     * Cria os quatro botões individuais
+     * e o botão de conjunto completo.
+     */
+    private void createSelectionButtons(
         int panelLeft,
         int panelTop
     ) {
+        int buttonCount =
+            5;
+
         int totalWidth =
-            ARMOR_BUTTON_WIDTH * 4
-            + ARMOR_BUTTON_GAP * 3;
+            ARMOR_BUTTON_WIDTH
+                * buttonCount
+                + ARMOR_BUTTON_GAP
+                    * (
+                        buttonCount - 1
+                    );
 
         int firstButtonX =
             panelLeft
-            + (PANEL_WIDTH - totalWidth) / 2;
+                + (
+                    PANEL_WIDTH
+                        - totalWidth
+                ) / 2;
 
-        int buttonY = panelTop + 30;
+        int buttonY =
+            panelTop + 30;
 
         addArmorButton(
             firstButtonX,
@@ -174,7 +282,7 @@ public class SteviumMatrixScreen extends Screen {
             firstButtonX
                 + (
                     ARMOR_BUTTON_WIDTH
-                    + ARMOR_BUTTON_GAP
+                        + ARMOR_BUTTON_GAP
                 ) * 2,
             buttonY,
             EquipmentSlot.LEGS,
@@ -188,7 +296,7 @@ public class SteviumMatrixScreen extends Screen {
             firstButtonX
                 + (
                     ARMOR_BUTTON_WIDTH
-                    + ARMOR_BUTTON_GAP
+                        + ARMOR_BUTTON_GAP
                 ) * 3,
             buttonY,
             EquipmentSlot.FEET,
@@ -197,8 +305,21 @@ public class SteviumMatrixScreen extends Screen {
             ),
             bootsUnlocked
         );
+
+        addFullSetButton(
+            firstButtonX
+                + (
+                    ARMOR_BUTTON_WIDTH
+                        + ARMOR_BUTTON_GAP
+                ) * 4,
+            buttonY
+        );
     }
 
+    /**
+     * Cria um botão para uma peça
+     * individual da armadura.
+     */
     private void addArmorButton(
         int x,
         int y,
@@ -206,81 +327,143 @@ public class SteviumMatrixScreen extends Screen {
         Component name,
         boolean unlocked
     ) {
-        Button button = Button.builder(
-            name,
-            pressedButton ->
-                selectArmorPart(slot)
-        ).bounds(
-            x,
-            y,
-            ARMOR_BUTTON_WIDTH,
-            ARMOR_BUTTON_HEIGHT
-        ).build();
+        Button button =
+            Button.builder(
+                name,
+                pressedButton ->
+                    selectArmorPart(
+                        slot
+                    )
+            ).bounds(
+                x,
+                y,
+                ARMOR_BUTTON_WIDTH,
+                ARMOR_BUTTON_HEIGHT
+            ).build();
 
-        button.active = unlocked;
+        button.active =
+            unlocked;
 
-        this.addRenderableWidget(button);
+        this.addRenderableWidget(
+            button
+        );
     }
 
+    /**
+     * Cria o botão de conjunto.
+     */
+    private void addFullSetButton(
+        int x,
+        int y
+    ) {
+        Button button =
+            Button.builder(
+                Component.literal(
+                    "Conjunto"
+                ),
+                pressedButton ->
+                    selectFullSet()
+            ).bounds(
+                x,
+                y,
+                ARMOR_BUTTON_WIDTH,
+                ARMOR_BUTTON_HEIGHT
+            ).build();
+
+        /*
+         * O botão somente funciona quando
+         * as quatro peças possuem Stevium.
+         */
+        button.active =
+            fullSetUnlocked;
+
+        this.addRenderableWidget(
+            button
+        );
+    }
+
+    /**
+     * Cria os botões dos materiais.
+     *
+     * Todos os materiais são criados,
+     * incluindo Stevium.
+     *
+     * A opção Stevium será escondida
+     * durante seleções individuais.
+     */
     private void createMaterialButtons(
         int panelLeft,
         int panelTop
     ) {
-        int columnCount = 4;
+        int columnCount =
+            4;
 
         int totalWidth =
-            MATERIAL_BUTTON_WIDTH * columnCount
-            + MATERIAL_BUTTON_GAP_X
-                * (columnCount - 1);
+            MATERIAL_BUTTON_WIDTH
+                * columnCount
+                + MATERIAL_BUTTON_GAP_X
+                    * (
+                        columnCount - 1
+                    );
 
         int firstButtonX =
             panelLeft
-            + (PANEL_WIDTH - totalWidth) / 2;
+                + (
+                    PANEL_WIDTH
+                        - totalWidth
+                ) / 2;
 
-        int firstButtonY = panelTop + 92;
+        int firstButtonY =
+            panelTop + 94;
 
-        int materialIndex = 0;
+        int materialIndex =
+            0;
 
         for (
             PowerMaterial material :
             PowerMaterial.values()
         ) {
-            if (!material.isIndividualOption()) {
-                continue;
-            }
-
             int column =
-                materialIndex % columnCount;
+                materialIndex
+                    % columnCount;
 
             int row =
-                materialIndex / columnCount;
+                materialIndex
+                    / columnCount;
 
             int buttonX =
                 firstButtonX
-                + column * (
-                    MATERIAL_BUTTON_WIDTH
-                    + MATERIAL_BUTTON_GAP_X
-                );
+                    + column
+                        * (
+                            MATERIAL_BUTTON_WIDTH
+                                + MATERIAL_BUTTON_GAP_X
+                        );
 
             int buttonY =
                 firstButtonY
-                + row * (
+                    + row
+                        * (
+                            MATERIAL_BUTTON_HEIGHT
+                                + MATERIAL_BUTTON_GAP_Y
+                        );
+
+            Button button =
+                Button.builder(
+                    material.getDisplayName(),
+                    pressedButton ->
+                        selectMaterial(
+                            material
+                        )
+                ).bounds(
+                    buttonX,
+                    buttonY,
+                    MATERIAL_BUTTON_WIDTH,
                     MATERIAL_BUTTON_HEIGHT
-                    + MATERIAL_BUTTON_GAP_Y
-                );
+                ).build();
 
-            Button button = Button.builder(
-                material.getDisplayName(),
-                pressedButton ->
-                    selectMaterial(material)
-            ).bounds(
-                buttonX,
-                buttonY,
-                MATERIAL_BUTTON_WIDTH,
-                MATERIAL_BUTTON_HEIGHT
-            ).build();
-
-            this.addRenderableWidget(button);
+            this.addRenderableWidget(
+                button
+            );
 
             materialButtons.add(
                 new MaterialButtonEntry(
@@ -293,23 +476,76 @@ public class SteviumMatrixScreen extends Screen {
         }
     }
 
+    /**
+     * Seleciona uma peça individual.
+     */
     private void selectArmorPart(
         EquipmentSlot slot
     ) {
-        if (!isSlotUnlocked(slot)) {
+        if (
+            !isSlotUnlocked(
+                slot
+            )
+        ) {
             return;
         }
 
-        selectedSlot = slot;
+        selectedSlot =
+            slot;
+
+        fullSetMode =
+            false;
 
         updateMaterialButtonVisibility();
         updateConfirmButton();
     }
 
+    /**
+     * Seleciona a edição do
+     * conjunto completo.
+     */
+    private void selectFullSet() {
+        if (!fullSetUnlocked) {
+            return;
+        }
+
+        selectedSlot =
+            null;
+
+        fullSetMode =
+            true;
+
+        updateMaterialButtonVisibility();
+        updateConfirmButton();
+    }
+
+    /**
+     * Guarda temporariamente o material
+     * escolhido no menu.
+     */
     private void selectMaterial(
         PowerMaterial material
     ) {
+        if (fullSetMode) {
+            temporaryFullSetSelection =
+                material;
+
+            updateConfirmButton();
+
+            return;
+        }
+
         if (selectedSlot == null) {
+            return;
+        }
+
+        /*
+         * Stevium não pode ser escolhido
+         * para uma peça individual.
+         */
+        if (
+            !material.isIndividualOption()
+        ) {
             return;
         }
 
@@ -321,7 +557,23 @@ public class SteviumMatrixScreen extends Screen {
         updateConfirmButton();
     }
 
+    /**
+     * Envia a seleção atual ao servidor.
+     */
     private void confirmSelection() {
+        if (fullSetMode) {
+            confirmFullSetSelection();
+
+            return;
+        }
+
+        confirmIndividualSelection();
+    }
+
+    /**
+     * Confirma uma seleção individual.
+     */
+    private void confirmIndividualSelection() {
         if (selectedSlot == null) {
             return;
         }
@@ -333,14 +585,12 @@ public class SteviumMatrixScreen extends Screen {
 
         if (
             material == null
-            || !material.isIndividualOption()
+                || !material
+                    .isIndividualOption()
         ) {
             return;
         }
 
-        /*
-         * Envia a peça e o material ao servidor.
-         */
         ClientPlayNetworking.send(
             new SelectIndividualPowerPayload(
                 selectedSlot,
@@ -348,22 +598,57 @@ public class SteviumMatrixScreen extends Screen {
             )
         );
 
-        /*
-         * Fecha o menu.
-         *
-         * A mensagem do servidor informará
-         * se a alteração foi aceita.
-         */
         this.onClose();
     }
 
+    /**
+     * Confirma a seleção do conjunto.
+     */
+    private void confirmFullSetSelection() {
+        if (!fullSetUnlocked) {
+            return;
+        }
+
+        PowerMaterial material =
+            temporaryFullSetSelection;
+
+        if (material == null) {
+            return;
+        }
+
+        ClientPlayNetworking.send(
+            new SelectFullSetPowerPayload(
+                material.getId()
+            )
+        );
+
+        this.onClose();
+    }
+
+    /**
+     * Atualiza o estado do botão
+     * de confirmação.
+     */
     private void updateConfirmButton() {
         if (confirmButton == null) {
             return;
         }
 
+        if (fullSetMode) {
+            confirmButton.active =
+                fullSetUnlocked
+                    && temporaryFullSetSelection
+                        != null
+                    && temporaryFullSetSelection
+                        != savedFullSetSelection;
+
+            return;
+        }
+
         if (selectedSlot == null) {
-            confirmButton.active = false;
+            confirmButton.active =
+                false;
+
             return;
         }
 
@@ -379,25 +664,42 @@ public class SteviumMatrixScreen extends Screen {
 
         confirmButton.active =
             temporary != null
-            && temporary != saved;
+                && temporary != saved;
     }
 
+    /**
+     * Mostra apenas os materiais válidos
+     * para a seleção atual.
+     */
     private void updateMaterialButtonVisibility() {
-        boolean shouldShow =
-            selectedSlot != null;
+        boolean hasSelectedTarget =
+            fullSetMode
+                || selectedSlot != null;
 
         for (
             MaterialButtonEntry entry :
             materialButtons
         ) {
-            entry.button().visible = shouldShow;
-            entry.button().active = shouldShow;
+            boolean materialAllowed =
+                fullSetMode
+                    || entry.material()
+                        .isIndividualOption();
+
+            boolean shouldShow =
+                hasSelectedTarget
+                    && materialAllowed;
+
+            entry.button().visible =
+                shouldShow;
+
+            entry.button().active =
+                shouldShow;
         }
     }
 
     /**
-     * Lê os materiais que já estavam gravados
-     * nas peças equipadas.
+     * Lê os materiais individuais
+     * já gravados nas peças equipadas.
      */
     private void loadSavedSelections() {
         savedSelections.clear();
@@ -418,22 +720,31 @@ public class SteviumMatrixScreen extends Screen {
         loadSavedSelection(
             EquipmentSlot.FEET
         );
+
+        loadSavedFullSetSelection();
     }
 
+    /**
+     * Lê a seleção individual de uma peça.
+     */
     private void loadSavedSelection(
         EquipmentSlot slot
     ) {
         if (
             this.minecraft == null
-            || this.minecraft.player == null
-            || !isSlotUnlocked(slot)
+                || this.minecraft.player == null
+                || !isSlotUnlocked(
+                    slot
+                )
         ) {
             return;
         }
 
         ItemStack stack =
             this.minecraft.player
-                .getItemBySlot(slot);
+                .getItemBySlot(
+                    slot
+                );
 
         String materialId =
             stack.getOrDefault(
@@ -442,11 +753,14 @@ public class SteviumMatrixScreen extends Screen {
             );
 
         PowerMaterial material =
-            PowerMaterial.fromId(materialId);
+            PowerMaterial.fromId(
+                materialId
+            );
 
         if (
             material == null
-            || !material.isIndividualOption()
+                || !material
+                    .isIndividualOption()
         ) {
             return;
         }
@@ -462,18 +776,64 @@ public class SteviumMatrixScreen extends Screen {
         );
     }
 
+    /**
+     * Lê o poder de conjunto ativo
+     * nas quatro peças.
+     */
+    private void loadSavedFullSetSelection() {
+        savedFullSetSelection =
+            null;
+
+        temporaryFullSetSelection =
+            null;
+
+        if (
+            this.minecraft == null
+                || this.minecraft.player == null
+                || !fullSetUnlocked
+        ) {
+            return;
+        }
+
+        savedFullSetSelection =
+            FullSetPowerUtil
+                .getActiveFullSetMaterial(
+                    this.minecraft.player
+                );
+
+        temporaryFullSetSelection =
+            savedFullSetSelection;
+    }
+
+    /**
+     * Verifica se uma peça individual
+     * está desbloqueada.
+     */
     private boolean isSlotUnlocked(
         EquipmentSlot slot
     ) {
         return switch (slot) {
-            case HEAD -> helmetUnlocked;
-            case CHEST -> chestplateUnlocked;
-            case LEGS -> leggingsUnlocked;
-            case FEET -> bootsUnlocked;
-            default -> false;
+            case HEAD ->
+                helmetUnlocked;
+
+            case CHEST ->
+                chestplateUnlocked;
+
+            case LEGS ->
+                leggingsUnlocked;
+
+            case FEET ->
+                bootsUnlocked;
+
+            default ->
+                false;
         };
     }
 
+    /**
+     * Atualiza quais seleções estão
+     * disponíveis no menu.
+     */
     private void updateUnlockedSlots() {
         helmetUnlocked =
             hasSteviumTrim(
@@ -497,30 +857,47 @@ public class SteviumMatrixScreen extends Screen {
 
         fullSetUnlocked =
             helmetUnlocked
-            && chestplateUnlocked
-            && leggingsUnlocked
-            && bootsUnlocked;
+                && chestplateUnlocked
+                && leggingsUnlocked
+                && bootsUnlocked;
     }
 
+    /**
+     * Verifica o acabamento de uma
+     * peça equipada.
+     */
     private boolean hasSteviumTrim(
         EquipmentSlot slot
     ) {
         if (
             this.minecraft == null
-            || this.minecraft.player == null
+                || this.minecraft.player == null
         ) {
             return false;
         }
 
         ItemStack stack =
             this.minecraft.player
-                .getItemBySlot(slot);
+                .getItemBySlot(
+                    slot
+                );
 
         return SteviumArmorUtil
-            .hasSteviumTrim(stack);
+            .hasSteviumTrim(
+                stack
+            );
     }
 
-    private Component getSelectedSlotName() {
+    /**
+     * Retorna o nome da seleção atual.
+     */
+    private Component getSelectedTargetName() {
+        if (fullSetMode) {
+            return Component.literal(
+                "Conjunto completo"
+            );
+        }
+
         if (selectedSlot == null) {
             return Component.translatable(
                 "screen.tailored-traits.none_selected"
@@ -555,7 +932,25 @@ public class SteviumMatrixScreen extends Screen {
         };
     }
 
+    /**
+     * Retorna o nome do material
+     * atualmente selecionado no menu.
+     */
     private Component getSelectedMaterialName() {
+        if (fullSetMode) {
+            if (
+                temporaryFullSetSelection
+                    == null
+            ) {
+                return Component.translatable(
+                    "screen.tailored-traits.none_selected"
+                );
+            }
+
+            return temporaryFullSetSelection
+                .getDisplayName();
+        }
+
         if (selectedSlot == null) {
             return Component.translatable(
                 "screen.tailored-traits.none_selected"
@@ -576,6 +971,25 @@ public class SteviumMatrixScreen extends Screen {
         return material.getDisplayName();
     }
 
+    /**
+     * Retorna o nome do poder de conjunto
+     * que já está salvo.
+     */
+    private Component
+        getSavedFullSetMaterialName() {
+        if (
+            savedFullSetSelection
+                == null
+        ) {
+            return Component.literal(
+                "Nenhum"
+            );
+        }
+
+        return savedFullSetSelection
+            .getDisplayName();
+    }
+
     @Override
     public void extractRenderState(
         GuiGraphicsExtractor graphics,
@@ -584,10 +998,16 @@ public class SteviumMatrixScreen extends Screen {
         float partialTick
     ) {
         int panelLeft =
-            (this.width - PANEL_WIDTH) / 2;
+            (
+                this.width
+                    - PANEL_WIDTH
+            ) / 2;
 
         int panelTop =
-            (this.height - PANEL_HEIGHT) / 2;
+            (
+                this.height
+                    - PANEL_HEIGHT
+            ) / 2;
 
         graphics.fill(
             panelLeft,
@@ -617,21 +1037,25 @@ public class SteviumMatrixScreen extends Screen {
             this.font,
             Component.translatable(
                 "screen.tailored-traits.selected",
-                getSelectedSlotName()
+                getSelectedTargetName()
             ),
             this.width / 2,
-            panelTop + 61,
+            panelTop + 62,
             0xFFD7C7FF
         );
 
-        if (selectedSlot == null) {
+        boolean hasSelectedTarget =
+            fullSetMode
+                || selectedSlot != null;
+
+        if (!hasSelectedTarget) {
             graphics.centeredText(
                 this.font,
-                Component.translatable(
-                    "screen.tailored-traits.click_piece"
+                Component.literal(
+                    "Escolha uma peça ou o conjunto completo."
                 ),
                 this.width / 2,
-                panelTop + 108,
+                panelTop + 110,
                 0xFFAAAAAA
             );
         } else {
@@ -641,7 +1065,7 @@ public class SteviumMatrixScreen extends Screen {
                     "screen.tailored-traits.choose_material"
                 ),
                 this.width / 2,
-                panelTop + 77,
+                panelTop + 78,
                 0xFFFFFFFF
             );
 
@@ -652,26 +1076,33 @@ public class SteviumMatrixScreen extends Screen {
                     getSelectedMaterialName()
                 ),
                 this.width / 2,
-                panelTop + 164,
+                panelTop + 166,
                 0xFFFFD37F
             );
 
+            Component costMessage =
+                fullSetMode
+                    ? Component.literal(
+                        "Custo: 5 níveis de experiência"
+                    )
+                    : Component.translatable(
+                        "screen.tailored-traits.individual_cost"
+                    );
+
             graphics.centeredText(
                 this.font,
-                Component.translatable(
-                    "screen.tailored-traits.individual_cost"
-                ),
+                costMessage,
                 this.width / 2,
-                panelTop + 204,
+                panelTop + 207,
                 0xFFAAAAAA
             );
         }
 
         graphics.fill(
             panelLeft + 18,
-            panelTop + 216,
+            panelTop + 219,
             panelLeft + PANEL_WIDTH - 18,
-            panelTop + 217,
+            panelTop + 220,
             0xFF765A91
         );
 
@@ -686,11 +1117,29 @@ public class SteviumMatrixScreen extends Screen {
             this.font,
             fullPowerMessage,
             this.width / 2,
-            panelTop + 225,
+            panelTop + 228,
             fullSetUnlocked
                 ? 0xFF77FF99
                 : 0xFFFF7777
         );
+
+        /*
+         * Mostra qual material de conjunto
+         * está atualmente salvo.
+         */
+        if (fullSetUnlocked) {
+            graphics.centeredText(
+                this.font,
+                Component.literal(
+                    "Poder de conjunto atual: "
+                ).append(
+                    getSavedFullSetMaterialName()
+                ),
+                this.width / 2,
+                panelTop + 243,
+                0xFFFFD37F
+            );
+        }
 
         super.extractRenderState(
             graphics,
