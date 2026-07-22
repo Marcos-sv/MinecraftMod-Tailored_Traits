@@ -14,7 +14,12 @@
         "main": [
             "com.marcos.tailoredtraits.TailoredTraits",
             "com.marcos.tailoredtraits.power.DamagePowerInitializer",
-            "com.marcos.tailoredtraits.power.MovementPowerInitializer"
+            "com.marcos.tailoredtraits.power.MovementPowerInitializer",
+            "com.marcos.tailoredtraits.power.UtilityPowerInitializer",
+            "com.marcos.tailoredtraits.power.NetheriteMovementPowerInitializer",
+            "com.marcos.tailoredtraits.power.ResinMovementPowerInitializer",
+            "com.marcos.tailoredtraits.power.CopperRedstonePowerInitializer",
+            "com.marcos.tailoredtraits.power.AmethystEchoPowerInitializer"
         ],
         "client": [
             "com.marcos.tailoredtraits.client.TailoredTraitsClient"

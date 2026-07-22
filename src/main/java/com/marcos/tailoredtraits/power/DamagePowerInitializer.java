@@ -35,8 +35,7 @@ public final class DamagePowerInitializer
 
     /*
      * Capacete configurado como Ferro:
-     *
-     * reduz em 10% o dano causado por projéteis.
+     * reduz em 10% o dano de projéteis.
      */
     private static final float
         IRON_HELMET_PROJECTILE_REDUCTION =
@@ -44,19 +43,30 @@ public final class DamagePowerInitializer
 
     /*
      * Peitoral configurado como Ferro:
-     *
-     * reduz em 10% o dano cuja origem
-     * seja uma entidade.
+     * reduz em 10% danos causados por entidades.
      */
     private static final float
         IRON_CHESTPLATE_ENTITY_REDUCTION =
             0.10F;
 
     /*
-     * Peitoral configurado como Diamante:
+     * Capacete configurado como Netherite:
+     * reduz em 10% danos classificados como fogo.
      *
-     * reduz em 25% o dano causado por
-     * criaturas nativas do End.
+     * Isso inclui, por exemplo:
+     *
+     * - fogo;
+     * - estar queimando;
+     * - lava;
+     * - ataques incendiários.
+     */
+    private static final float
+        NETHERITE_HELMET_FIRE_DAMAGE_REDUCTION =
+            0.10F;
+
+    /*
+     * Peitoral configurado como Diamante:
+     * reduz em 25% o dano de criaturas do End.
      */
     private static final float
         DIAMOND_CHESTPLATE_END_DAMAGE_REDUCTION =
@@ -64,9 +74,7 @@ public final class DamagePowerInitializer
 
     /*
      * Calça configurada como Diamante:
-     *
-     * aumenta em 25% o dano causado pelo
-     * jogador contra criaturas do End.
+     * aumenta em 25% o dano contra criaturas do End.
      */
     private static final float
         DIAMOND_LEGGINGS_END_DAMAGE_BONUS =
@@ -74,9 +82,7 @@ public final class DamagePowerInitializer
 
     /*
      * Peitoral configurado como Ouro:
-     *
-     * reduz em 25% o dano causado por
-     * criaturas nativas do Nether.
+     * reduz em 25% o dano de criaturas do Nether.
      */
     private static final float
         GOLD_CHESTPLATE_NETHER_DAMAGE_REDUCTION =
@@ -84,9 +90,7 @@ public final class DamagePowerInitializer
 
     /*
      * Calça configurada como Ouro:
-     *
-     * aumenta em 25% o dano causado pelo
-     * jogador contra criaturas do Nether.
+     * aumenta em 25% o dano contra criaturas do Nether.
      */
     private static final float
         GOLD_LEGGINGS_NETHER_DAMAGE_BONUS =
@@ -95,7 +99,7 @@ public final class DamagePowerInitializer
     /*
      * Peitoral configurado como Cobre:
      *
-     * 60 ticks = 3 segundos.
+     * 60 ticks = 3 segundos de paralisia.
      */
     private static final int
         COPPER_PARALYSIS_DURATION =
@@ -103,9 +107,6 @@ public final class DamagePowerInitializer
 
     /*
      * Lentidão nível XI.
-     *
-     * O amplificador começa em zero.
-     * Portanto, 10 corresponde ao nível 11.
      */
     private static final int
         COPPER_SLOWNESS_AMPLIFIER =
@@ -119,10 +120,27 @@ public final class DamagePowerInitializer
             5;
 
     /*
-     * Peitoral configurado como Redstone:
+     * Peitoral configurado como Resina:
      *
-     * portas e alçapões dentro desse
-     * raio serão ativados.
+     * 80 ticks = 4 segundos de lentidão.
+     */
+    private static final int
+        RESIN_SLOWNESS_DURATION =
+            80;
+
+    /*
+     * Amplificador 1 representa Lentidão II.
+     *
+     * É uma lentidão perceptível, mas muito menos
+     * forte que a paralisia do peitoral de Cobre.
+     */
+    private static final int
+        RESIN_SLOWNESS_AMPLIFIER =
+            1;
+
+    /*
+     * Peitoral configurado como Redstone:
+     * raio de ativação das portas e alçapões.
      */
     private static final int
         REDSTONE_ACTIVATION_RADIUS =
@@ -130,32 +148,25 @@ public final class DamagePowerInitializer
 
     /*
      * 20 ticks = 1 segundo.
-     *
-     * Impede ativações seguidas causadas por
-     * fogo, veneno ou outros danos contínuos.
      */
     private static final long
         REDSTONE_ACTIVATION_COOLDOWN =
             20L;
 
     /*
-     * Guarda as entidades cujo dano está sendo
-     * reaplicado pelo próprio Tailored Traits.
+     * Guarda entidades cujo dano está sendo
+     * reaplicado pelo Tailored Traits.
      *
-     * Isso impede repetição infinita:
-     *
-     * evento recebe dano
-     * -> modifica dano
-     * -> aplica novo dano
-     * -> evento recebe novamente
+     * Impede repetição infinita ao substituir
+     * o dano original por um dano modificado.
      */
     private static final Set<UUID>
         REAPPLYING_MODIFIED_DAMAGE =
             new HashSet<>();
 
     /*
-     * Guarda o último momento em que o poder
-     * do peitoral de Redstone foi ativado.
+     * Guarda a última ativação do peitoral
+     * configurado como Redstone.
      */
     private static final Map<UUID, Long>
         LAST_REDSTONE_ACTIVATION =
@@ -166,16 +177,9 @@ public final class DamagePowerInitializer
 
         /*
          * Executado antes da aplicação das
-         * proteções da armadura vanilla.
+         * proteções vanilla.
          *
-         * Aqui são processados:
-         *
-         * - Capacete de Ferro;
-         * - Peitoral de Ferro;
-         * - Peitoral de Diamante;
-         * - Calça de Diamante;
-         * - Peitoral de Ouro;
-         * - Calça de Ouro.
+         * Utilizado para alterar o valor do dano.
          */
         ServerLivingEntityEvents.ALLOW_DAMAGE.register(
             (
@@ -193,10 +197,8 @@ public final class DamagePowerInitializer
          * Executado depois que o dano
          * foi realmente aceito.
          *
-         * Aqui são processados:
-         *
-         * - Peitoral de Cobre;
-         * - Peitoral de Redstone.
+         * Utilizado para poderes que reagem
+         * ao jogador ser atingido.
          */
         ServerLivingEntityEvents.AFTER_DAMAGE.register(
             (
@@ -220,8 +222,7 @@ public final class DamagePowerInitializer
     }
 
     /**
-     * Processa alterações no valor do dano
-     * antes da aplicação das proteções vanilla.
+     * Processa modificações no valor do dano.
      */
     private static boolean handleDamageBeforeApplication(
         LivingEntity damagedEntity,
@@ -236,10 +237,10 @@ public final class DamagePowerInitializer
             damagedEntity.getUUID();
 
         /*
-         * Esta é a chamada interna criada
+         * Esta é a segunda chamada, criada
          * pelo próprio Tailored Traits.
          *
-         * O novo dano já foi calculado e deve
+         * O dano já foi modificado e deve
          * continuar normalmente.
          */
         if (
@@ -258,10 +259,7 @@ public final class DamagePowerInitializer
             );
 
         /*
-         * Nenhuma habilidade alterou o dano.
-         *
-         * O Minecraft continua normalmente
-         * usando o valor original.
+         * Nenhuma habilidade modificou o dano.
          */
         if (
             Float.compare(
@@ -272,20 +270,12 @@ public final class DamagePowerInitializer
             return true;
         }
 
-        /*
-         * Garante que nunca seja aplicado
-         * um valor negativo.
-         */
         modifiedDamage =
             Math.max(
                 0.0F,
                 modifiedDamage
             );
 
-        /*
-         * Confirma que a entidade está em
-         * um mundo do lado do servidor.
-         */
         if (
             !(damagedEntity.level()
                 instanceof ServerLevel serverLevel)
@@ -299,8 +289,8 @@ public final class DamagePowerInitializer
 
         try {
             /*
-             * Reaplica o mesmo ataque usando
-             * o valor já modificado.
+             * Aplica o ataque novamente usando
+             * o valor modificado.
              */
             damagedEntity.hurtServer(
                 serverLevel,
@@ -314,15 +304,15 @@ public final class DamagePowerInitializer
         }
 
         /*
-         * Cancela o dano original, pois o dano
+         * Cancela o dano original, pois o valor
          * modificado já foi aplicado.
          */
         return false;
     }
 
     /**
-     * Aplica todos os aumentos e reduções
-     * relacionados ao evento de dano.
+     * Calcula todos os bônus e reduções
+     * aplicáveis ao dano atual.
      */
     private static float calculateModifiedDamage(
         LivingEntity damagedEntity,
@@ -333,8 +323,8 @@ public final class DamagePowerInitializer
             originalDamage;
 
         /*
-         * Primeiro são aplicados os bônus ofensivos
-         * do jogador que causou o ataque.
+         * Primeiro são aplicados os bônus
+         * ofensivos do atacante.
          */
         modifiedDamage =
             applyDiamondLeggingsDamageBonus(
@@ -351,8 +341,8 @@ public final class DamagePowerInitializer
             );
 
         /*
-         * As reduções defensivas atuais
-         * são exclusivas para jogadores.
+         * Depois são aplicadas as reduções
+         * defensivas do jogador atingido.
          */
         if (
             damagedEntity
@@ -371,19 +361,13 @@ public final class DamagePowerInitializer
 
     /**
      * Calça configurada como Diamante:
-     *
-     * aumenta em 25% o dano causado pelo
-     * jogador contra criaturas do End.
+     * aumenta o dano contra criaturas do End.
      */
     private static float applyDiamondLeggingsDamageBonus(
         LivingEntity damagedEntity,
         DamageSource damageSource,
         float currentDamage
     ) {
-        /*
-         * O alvo precisa pertencer ao grupo
-         * de criaturas nativas do End.
-         */
         if (!isEndMob(damagedEntity)) {
             return currentDamage;
         }
@@ -391,14 +375,6 @@ public final class DamagePowerInitializer
         Entity responsibleEntity =
             damageSource.getEntity();
 
-        /*
-         * O responsável pelo ataque precisa
-         * ser um jogador do servidor.
-         *
-         * Isso também permite que flechas e
-         * tridentes lançados pelo jogador
-         * recebam o bônus.
-         */
         if (
             !(responsibleEntity
                 instanceof ServerPlayer attacker)
@@ -411,39 +387,32 @@ public final class DamagePowerInitializer
                 EquipmentSlot.LEGS
             );
 
-        boolean hasDiamondLeggingsPower =
+        boolean hasDiamondPower =
             hasSelectedMaterial(
                 leggings,
                 PowerMaterial.DIAMOND
             );
 
-        if (!hasDiamondLeggingsPower) {
+        if (!hasDiamondPower) {
             return currentDamage;
         }
 
-        float bonusMultiplier =
-            1.0F
-                + DIAMOND_LEGGINGS_END_DAMAGE_BONUS;
-
         return currentDamage
-            * bonusMultiplier;
+            * (
+                1.0F
+                    + DIAMOND_LEGGINGS_END_DAMAGE_BONUS
+            );
     }
 
     /**
      * Calça configurada como Ouro:
-     *
-     * aumenta em 25% o dano causado pelo
-     * jogador contra criaturas do Nether.
+     * aumenta o dano contra criaturas do Nether.
      */
     private static float applyGoldLeggingsDamageBonus(
         LivingEntity damagedEntity,
         DamageSource damageSource,
         float currentDamage
     ) {
-        /*
-         * O alvo precisa ser uma criatura
-         * nativa do Nether.
-         */
         if (!isNetherMob(damagedEntity)) {
             return currentDamage;
         }
@@ -451,12 +420,6 @@ public final class DamagePowerInitializer
         Entity responsibleEntity =
             damageSource.getEntity();
 
-        /*
-         * O responsável precisa ser um jogador.
-         *
-         * Flechas e tridentes disparados pelo
-         * jogador também recebem o bônus.
-         */
         if (
             !(responsibleEntity
                 instanceof ServerPlayer attacker)
@@ -469,26 +432,25 @@ public final class DamagePowerInitializer
                 EquipmentSlot.LEGS
             );
 
-        boolean hasGoldLeggingsPower =
+        boolean hasGoldPower =
             hasSelectedMaterial(
                 leggings,
                 PowerMaterial.GOLD
             );
 
-        if (!hasGoldLeggingsPower) {
+        if (!hasGoldPower) {
             return currentDamage;
         }
 
-        float bonusMultiplier =
-            1.0F
-                + GOLD_LEGGINGS_NETHER_DAMAGE_BONUS;
-
         return currentDamage
-            * bonusMultiplier;
+            * (
+                1.0F
+                    + GOLD_LEGGINGS_NETHER_DAMAGE_BONUS
+            );
     }
 
     /**
-     * Aplica as reduções defensivas do jogador.
+     * Aplica as reduções defensivas das peças.
      */
     private static float applyPlayerDamageReductions(
         ServerPlayer player,
@@ -499,14 +461,17 @@ public final class DamagePowerInitializer
             0.0F;
 
         /*
-         * Capacete configurado como Ferro:
-         * redução contra projéteis.
+         * Verifica o capacete atual.
          */
         ItemStack helmet =
             player.getItemBySlot(
                 EquipmentSlot.HEAD
             );
 
+        /*
+         * Capacete configurado como Ferro:
+         * redução contra projéteis.
+         */
         boolean hasIronHelmetPower =
             hasSelectedMaterial(
                 helmet,
@@ -527,6 +492,29 @@ public final class DamagePowerInitializer
         }
 
         /*
+         * Capacete configurado como Netherite:
+         * redução contra danos de fogo.
+         */
+        boolean hasNetheriteHelmetPower =
+            hasSelectedMaterial(
+                helmet,
+                PowerMaterial.NETHERITE
+            );
+
+        boolean isFireDamage =
+            damageSource.is(
+                DamageTypeTags.IS_FIRE
+            );
+
+        if (
+            hasNetheriteHelmetPower
+                && isFireDamage
+        ) {
+            totalReduction +=
+                NETHERITE_HELMET_FIRE_DAMAGE_REDUCTION;
+        }
+
+        /*
          * Verifica o peitoral atual.
          */
         ItemStack chestplate =
@@ -536,8 +524,7 @@ public final class DamagePowerInitializer
 
         /*
          * Peitoral configurado como Ferro:
-         * redução contra ataques causados
-         * por entidades.
+         * redução contra ataques de entidades.
          */
         boolean hasIronChestplatePower =
             hasSelectedMaterial(
@@ -569,14 +556,11 @@ public final class DamagePowerInitializer
                 PowerMaterial.DIAMOND
             );
 
-        boolean wasCausedByEndMob =
-            isEndDamageSource(
-                damageSource
-            );
-
         if (
             hasDiamondChestplatePower
-                && wasCausedByEndMob
+                && isEndDamageSource(
+                    damageSource
+                )
         ) {
             totalReduction +=
                 DIAMOND_CHESTPLATE_END_DAMAGE_REDUCTION;
@@ -592,28 +576,22 @@ public final class DamagePowerInitializer
                 PowerMaterial.GOLD
             );
 
-        boolean wasCausedByNetherMob =
-            isNetherDamageSource(
-                damageSource
-            );
-
         if (
             hasGoldChestplatePower
-                && wasCausedByNetherMob
+                && isNetherDamageSource(
+                    damageSource
+                )
         ) {
             totalReduction +=
                 GOLD_CHESTPLATE_NETHER_DAMAGE_REDUCTION;
         }
 
-        /*
-         * Nenhuma redução foi aplicada.
-         */
         if (totalReduction <= 0.0F) {
             return currentDamage;
         }
 
         /*
-         * Impede que futuras combinações
+         * Evita que futuras combinações
          * ultrapassem 100% de redução.
          */
         totalReduction =
@@ -622,16 +600,16 @@ public final class DamagePowerInitializer
                 1.0F
             );
 
-        float damageMultiplier =
-            1.0F - totalReduction;
-
         return currentDamage
-            * damageMultiplier;
+            * (
+                1.0F
+                    - totalReduction
+            );
     }
 
     /**
-     * Verifica se a origem do dano pertence
-     * a uma criatura nativa do End.
+     * Verifica se o dano veio de uma
+     * criatura ou ataque do End.
      */
     private static boolean isEndDamageSource(
         DamageSource damageSource
@@ -665,8 +643,8 @@ public final class DamagePowerInitializer
     }
 
     /**
-     * Verifica se uma entidade pertence
-     * ao grupo de criaturas do End.
+     * Verifica se a entidade é uma
+     * criatura nativa do End.
      */
     private static boolean isEndMob(
         Entity entity
@@ -682,22 +660,12 @@ public final class DamagePowerInitializer
     }
 
     /**
-     * Verifica se a origem do dano pertence
-     * a uma criatura nativa do Nether.
+     * Verifica se o dano veio de uma
+     * criatura nativa do Nether.
      */
     private static boolean isNetherDamageSource(
         DamageSource damageSource
     ) {
-        /*
-         * Em ataques corpo a corpo ou projéteis,
-         * getEntity() normalmente retorna:
-         *
-         * - Blaze;
-         * - Ghast;
-         * - Piglin;
-         * - Esqueleto Wither;
-         * - outras criaturas responsáveis.
-         */
         Entity responsibleEntity =
             damageSource.getEntity();
 
@@ -711,8 +679,8 @@ public final class DamagePowerInitializer
     }
 
     /**
-     * Verifica se uma entidade pertence
-     * ao grupo de criaturas nativas do Nether.
+     * Verifica se a entidade é uma
+     * criatura nativa do Nether.
      */
     private static boolean isNetherMob(
         Entity entity
@@ -744,8 +712,8 @@ public final class DamagePowerInitializer
     }
 
     /**
-     * Processa poderes que devem ocorrer
-     * depois que o dano for aceito.
+     * Processa habilidades ativadas depois
+     * que o jogador recebe dano.
      */
     private static void handleDamageAfterApplication(
         LivingEntity livingEntity,
@@ -762,16 +730,13 @@ public final class DamagePowerInitializer
         }
 
         /*
-         * Ataques totalmente bloqueados por
-         * escudo não ativam os poderes.
+         * Ataques bloqueados por escudo
+         * não ativam as habilidades.
          */
         if (blocked) {
             return;
         }
 
-        /*
-         * Nenhum dano real foi processado.
-         */
         if (
             baseDamageTaken <= 0.0F
                 || damageTaken <= 0.0F
@@ -780,6 +745,11 @@ public final class DamagePowerInitializer
         }
 
         applyCopperChestplatePower(
+            player,
+            damageSource
+        );
+
+        applyResinChestplatePower(
             player,
             damageSource
         );
@@ -793,8 +763,8 @@ public final class DamagePowerInitializer
     /**
      * Peitoral configurado como Cobre:
      *
-     * paralisa a entidade que atacar
-     * diretamente o jogador.
+     * paralisa completamente o atacante
+     * corpo a corpo por três segundos.
      */
     private static void applyCopperChestplatePower(
         ServerPlayer player,
@@ -815,6 +785,103 @@ public final class DamagePowerInitializer
             return;
         }
 
+        LivingEntity attacker =
+            getDirectMeleeAttacker(
+                player,
+                damageSource
+            );
+
+        if (attacker == null) {
+            return;
+        }
+
+        attacker.setDeltaMovement(
+            0.0D,
+            0.0D,
+            0.0D
+        );
+
+        attacker.addEffect(
+            new MobEffectInstance(
+                MobEffects.SLOWNESS,
+                COPPER_PARALYSIS_DURATION,
+                COPPER_SLOWNESS_AMPLIFIER,
+                true,
+                true,
+                true
+            )
+        );
+
+        attacker.addEffect(
+            new MobEffectInstance(
+                MobEffects.WEAKNESS,
+                COPPER_PARALYSIS_DURATION,
+                COPPER_WEAKNESS_AMPLIFIER,
+                true,
+                true,
+                true
+            )
+        );
+    }
+
+    /**
+     * Peitoral configurado como Resina:
+     *
+     * ataques corpo a corpo deixam
+     * o atacante mais lento.
+     */
+    private static void applyResinChestplatePower(
+        ServerPlayer player,
+        DamageSource damageSource
+    ) {
+        ItemStack chestplate =
+            player.getItemBySlot(
+                EquipmentSlot.CHEST
+            );
+
+        boolean hasResinPower =
+            hasSelectedMaterial(
+                chestplate,
+                PowerMaterial.RESIN
+            );
+
+        if (!hasResinPower) {
+            return;
+        }
+
+        LivingEntity attacker =
+            getDirectMeleeAttacker(
+                player,
+                damageSource
+            );
+
+        if (attacker == null) {
+            return;
+        }
+
+        attacker.addEffect(
+            new MobEffectInstance(
+                MobEffects.SLOWNESS,
+                RESIN_SLOWNESS_DURATION,
+                RESIN_SLOWNESS_AMPLIFIER,
+                true,
+                true,
+                true
+            )
+        );
+    }
+
+    /**
+     * Retorna o atacante somente quando o dano
+     * for um ataque corpo a corpo direto.
+     *
+     * Flechas, tridentes e explosões
+     * não são considerados.
+     */
+    private static LivingEntity getDirectMeleeAttacker(
+        ServerPlayer player,
+        DamageSource damageSource
+    ) {
         Entity responsibleEntity =
             damageSource.getEntity();
 
@@ -822,11 +889,11 @@ public final class DamagePowerInitializer
             !(responsibleEntity
                 instanceof LivingEntity attacker)
         ) {
-            return;
+            return null;
         }
 
         if (attacker == player) {
-            return;
+            return null;
         }
 
         boolean isProjectile =
@@ -839,58 +906,16 @@ public final class DamagePowerInitializer
                 DamageTypeTags.IS_EXPLOSION
             );
 
-        /*
-         * Flechas, tridentes, explosões e outros
-         * ataques indiretos não ativam o poder.
-         */
         boolean isMeleeAttack =
             damageSource.isDirect()
                 && !isProjectile
                 && !isExplosion;
 
         if (!isMeleeAttack) {
-            return;
+            return null;
         }
 
-        /*
-         * Interrompe imediatamente o movimento
-         * atual do atacante.
-         */
-        attacker.setDeltaMovement(
-            0.0D,
-            0.0D,
-            0.0D
-        );
-
-        /*
-         * Lentidão extremamente alta
-         * durante três segundos.
-         */
-        attacker.addEffect(
-            new MobEffectInstance(
-                MobEffects.SLOWNESS,
-                COPPER_PARALYSIS_DURATION,
-                COPPER_SLOWNESS_AMPLIFIER,
-                true,
-                true,
-                true
-            )
-        );
-
-        /*
-         * Também reduz fortemente o dano
-         * causado pelo atacante paralisado.
-         */
-        attacker.addEffect(
-            new MobEffectInstance(
-                MobEffects.WEAKNESS,
-                COPPER_PARALYSIS_DURATION,
-                COPPER_WEAKNESS_AMPLIFIER,
-                true,
-                true,
-                true
-            )
-        );
+        return attacker;
     }
 
     /**
@@ -929,10 +954,6 @@ public final class DamagePowerInitializer
                 playerId
             );
 
-        /*
-         * Impede nova ativação dentro
-         * do intervalo de um segundo.
-         */
         if (
             previousActivation != null
                 && currentGameTime
@@ -964,10 +985,6 @@ public final class DamagePowerInitializer
                 REDSTONE_ACTIVATION_RADIUS
             );
 
-        /*
-         * Percorre todos os blocos
-         * dentro do raio definido.
-         */
         for (
             BlockPos position :
             BlockPos.betweenClosed(
@@ -986,8 +1003,8 @@ public final class DamagePowerInitializer
             /*
              * Portas ocupam dois blocos.
              *
-             * Apenas a metade inferior é processada
-             * para evitar duas ativações.
+             * Apenas a metade inferior
+             * deve ser processada.
              */
             if (
                 block
@@ -1022,7 +1039,7 @@ public final class DamagePowerInitializer
             }
 
             /*
-             * Alterna o estado dos alçapões.
+             * Alçapões ocupam apenas um bloco.
              */
             if (
                 block
@@ -1049,8 +1066,9 @@ public final class DamagePowerInitializer
     }
 
     /**
-     * Verifica se a peça possui enfeite de Stevium
-     * e está configurada com o material esperado.
+     * Verifica se a peça possui acabamento
+     * de Stevium e está configurada com
+     * o material esperado.
      */
     private static boolean hasSelectedMaterial(
         ItemStack armorPiece,
